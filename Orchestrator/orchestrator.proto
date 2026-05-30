@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package orchestrator;
+
+service OrchestratorService {
+  rpc SubmitPrompt(SubmitPromptRequest) returns (SubmitPromptReply);
+}
+
+message SubmitPromptRequest {
+  string prompt = 1;
+}
+
+message SubmitPromptReply {
+  string response = 1;
+  bool cache_hit = 2;
+}
