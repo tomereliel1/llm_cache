@@ -11,6 +11,7 @@ env/
 
 # uv / Python tooling
 .python-version.bak
+.uv-cache/
 
 # Environment variables and secrets
 .env
