@@ -22,4 +22,7 @@ quote-style = "double"
 indent-style = "space"
 
 [dependency-groups]
-dev = ["ruff>=0.15.15"]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.15.15",
+]

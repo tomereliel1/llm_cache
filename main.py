@@ -1,7 +1,7 @@
 from Embedding import OllamaEmbedder
 from LLM import OllamaLLMProvider
 from Orchestrator import CacheOrchestrator
-from VectorStore import VsEmptyMock
+from TestDoubles import VectorStoreMissStub
 
 EMBEDDING_MODEL_NAME = "embeddinggemma"
 LLM_MODEL_NAME = "llama3.2:3b"
@@ -12,7 +12,7 @@ SIMILARITY_THRESHOLD = 0.85
 def main() -> None:
     embedder = OllamaEmbedder(EMBEDDING_MODEL_NAME)
     llm_provider = OllamaLLMProvider(LLM_MODEL_NAME)
-    vector_store = VsEmptyMock()
+    vector_store = VectorStoreMissStub()
 
     orchestrator = CacheOrchestrator(
         embedder=embedder,

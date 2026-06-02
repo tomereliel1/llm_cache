@@ -1,6 +1,6 @@
 from Embedding import OllamaEmbedder
 from LLM import GroqLLMProvider, OllamaLLMProvider
-from VectorStore import VsEmptyMock
+from TestDoubles import VectorStoreMissStub
 
 EMBEDDING_MODEL_NAME = "embeddinggemma"
 OLLANA_LLM_MODEL_NAME = "llama3.2:3b"
@@ -13,7 +13,7 @@ def main() -> None:
     print("---------------------------------------------------------")
 
     embedder = OllamaEmbedder(EMBEDDING_MODEL_NAME)
-    vector_store = VsEmptyMock()
+    vector_store = VectorStoreMissStub()
     ollama_llm_provider = OllamaLLMProvider(OLLANA_LLM_MODEL_NAME)
     groq_llm_provider = GroqLLMProvider()
     embedding_vector = embedder.embed(PROMPT)
