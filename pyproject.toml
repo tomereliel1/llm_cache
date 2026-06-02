@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "groq>=1.4.0",
+    "ollama>=0.6.2",
+]
 
 [tool.ruff]
 line-length = 100
