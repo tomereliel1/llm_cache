@@ -1,6 +1,6 @@
-from Embedding import OllamaEmbedder
-from LLM import GroqLLMProvider, OllamaLLMProvider
-from TestDoubles import VectorStoreMissStub
+from llm_cache.embedding import OllamaEmbedder
+from llm_cache.llm import GroqLLMProvider, OllamaLLMProvider
+from llm_cache.test_doubles import VectorStoreMissStub
 
 EMBEDDING_MODEL_NAME = "embeddinggemma"
 OLLANA_LLM_MODEL_NAME = "llama3.2:3b"

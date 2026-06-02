@@ -1,7 +1,7 @@
-from Embedding import OllamaEmbedder
-from LLM import OllamaLLMProvider
-from Orchestrator import CacheOrchestrator
-from TestDoubles import VectorStoreMissStub
+from llm_cache.embedding import OllamaEmbedder
+from llm_cache.llm import OllamaLLMProvider
+from llm_cache.orchestrator import CacheOrchestrator
+from llm_cache.test_doubles import VectorStoreMissStub
 
 EMBEDDING_MODEL_NAME = "embeddinggemma"
 LLM_MODEL_NAME = "llama3.2:3b"

@@ -1,4 +1,4 @@
-from VectorStore import IVectorStore, VectorStoreResult
+from llm_cache.vector_store import IVectorStore, VectorStoreResult
 
 
 class VectorStoreHitStub(IVectorStore):

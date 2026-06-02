@@ -1,7 +1,7 @@
-from Embedding import IEmbedder
-from LLM import ILLMProvider
-from Orchestrator import CacheOrchestrator
-from TestDoubles import VectorStoreHitStub, VectorStoreMissStub
+from llm_cache.embedding import IEmbedder
+from llm_cache.llm import ILLMProvider
+from llm_cache.orchestrator import CacheOrchestrator
+from llm_cache.test_doubles import VectorStoreHitStub, VectorStoreMissStub
 
 
 class LocalFakeEmbedder(IEmbedder):

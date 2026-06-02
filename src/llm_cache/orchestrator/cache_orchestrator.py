@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
-from Embedding import IEmbedder
-from LLM import ILLMProvider
-from VectorStore import IVectorStore
+from llm_cache.embedding import IEmbedder
+from llm_cache.llm import ILLMProvider
+from llm_cache.vector_store import IVectorStore
 
 
 @dataclass(frozen=True)
