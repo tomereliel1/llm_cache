@@ -1,29 +1,9 @@
-from llm_cache.config import AppConfig, ConfigError, EmbeddingConfig, LLMConfig, VectorStoreConfig
+from __future__ import annotations
+
+from llm_cache.config import AppConfig
+from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.factories import create_embedder, create_llm_provider, create_vector_store
 from llm_cache.orchestrator import CacheOrchestrator, QueryResult
-
-DEFAULT_DEMO_PROMPT = "Explain semantic caching in one sentence."
-EMBEDDING_MODEL_NAME = "embeddinggemma"
-LLM_MODEL_NAME = "llama3.2:3b"
-SIMILARITY_THRESHOLD = 0.8
-VECTOR_STORE_PROVIDER = "vector-store-miss-stub"
-
-
-def build_demo_config() -> AppConfig:
-    return AppConfig(
-        embedding=EmbeddingConfig(
-            provider="ollama",
-            model=EMBEDDING_MODEL_NAME,
-        ),
-        llm=LLMConfig(
-            provider="ollama",
-            model=LLM_MODEL_NAME,
-        ),
-        vector_store=VectorStoreConfig(
-            provider=VECTOR_STORE_PROVIDER,
-        ),
-        similarity_threshold=SIMILARITY_THRESHOLD,
-    )
 
 
 def build_orchestrator(config: AppConfig) -> CacheOrchestrator:
@@ -39,22 +19,33 @@ def build_orchestrator(config: AppConfig) -> CacheOrchestrator:
     )
 
 
-def run_demo_query(orchestrator: CacheOrchestrator, prompt: str) -> QueryResult:
+def run_query(orchestrator: CacheOrchestrator, prompt: str) -> QueryResult:
     return orchestrator.query(prompt)
 
 
-def main() -> None:
-    try:
-        config = build_demo_config()
-        orchestrator = build_orchestrator(config)
-        result = run_demo_query(orchestrator, DEFAULT_DEMO_PROMPT)
-    except ConfigError as exc:
-        print(f"Configuration error: {exc}")
-        raise SystemExit(1) from exc
+def print_result(prompt: str, result: QueryResult) -> None:
+    print()
+    print("Prompt:")
+    print(prompt)
 
-    print("Prompt:", DEFAULT_DEMO_PROMPT)
-    print("Response:", result.response)
-    print("Cache hit:", result.cache_hit)
+    print()
+    print("Response:")
+    print(result.response)
+
+    print()
+    print("Metadata:")
+    print(f"cache_hit: {result.cache_hit}")
+
+    if hasattr(result, "similarity_score"):
+        print(f"similarity_score: {result.similarity_score}")
+
+
+def main() -> None:
+    args = parse_cli_args()
+    config = app_config_from_args(args)
+    orchestrator = build_orchestrator(config)
+    result = run_query(orchestrator, args.prompt)
+    print_result(args.prompt, result)
 
 
 if __name__ == "__main__":

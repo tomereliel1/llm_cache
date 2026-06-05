@@ -1,19 +1,17 @@
 import os
 
 from llm_cache.config.app_config import ConfigError, LLMConfig
+from llm_cache.config.provider_options import (
+    SUPPORTED_LLM_PROVIDERS,
+    normalize_provider_name,
+)
 from llm_cache.llm.groq_llm_provider import GroqLLMProvider
 from llm_cache.llm.i_llm_provider import ILLMProvider
 from llm_cache.llm.ollama_llm_provider import OllamaLLMProvider
 
-_SUPPORTED_LLM_PROVIDERS = ("ollama", "groq")
-
-
-def _normalize_provider(provider: str) -> str:
-    return provider.strip().lower()
-
 
 def create_llm_provider(config: LLMConfig) -> ILLMProvider:
-    provider = _normalize_provider(config.provider)
+    provider = normalize_provider_name(config.provider)
 
     if provider == "ollama":
         if not config.model:
@@ -43,5 +41,5 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
 
     raise ConfigError(
         f"Unknown LLM provider '{config.provider}'. "
-        f"Supported LLM providers: {', '.join(_SUPPORTED_LLM_PROVIDERS)}"
+        f"Supported LLM providers: {', '.join(SUPPORTED_LLM_PROVIDERS)}"
     )

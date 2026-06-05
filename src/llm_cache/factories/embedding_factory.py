@@ -1,16 +1,14 @@
 from llm_cache.config.app_config import ConfigError, EmbeddingConfig
+from llm_cache.config.provider_options import (
+    SUPPORTED_EMBEDDING_PROVIDERS,
+    normalize_provider_name,
+)
 from llm_cache.embedding.i_embedder import IEmbedder
 from llm_cache.embedding.ollama_embedder import OllamaEmbedder
 
-_SUPPORTED_EMBEDDING_PROVIDERS = ("ollama",)
-
-
-def _normalize_provider(provider: str) -> str:
-    return provider.strip().lower()
-
 
 def create_embedder(config: EmbeddingConfig) -> IEmbedder:
-    provider = _normalize_provider(config.provider)
+    provider = normalize_provider_name(config.provider)
 
     if provider == "ollama":
         if not config.model:
@@ -23,5 +21,5 @@ def create_embedder(config: EmbeddingConfig) -> IEmbedder:
 
     raise ConfigError(
         f"Unknown embedding provider '{config.provider}'. "
-        f"Supported embedding providers: {', '.join(_SUPPORTED_EMBEDDING_PROVIDERS)}"
+        f"Supported embedding providers: {', '.join(SUPPORTED_EMBEDDING_PROVIDERS)}"
     )
