@@ -8,9 +8,11 @@ class VectorStoreHitStub(IVectorStore):
         self,
         cached_prompt: str = "cached prompt",
         cached_response: str = "cached answer",
+        similarity_threshold: float = 0.8,
     ) -> None:
         self.cached_prompt = cached_prompt
         self.cached_response = cached_response
+        self.similarity_threshold = similarity_threshold
         self.insert_calls_count = 0
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:

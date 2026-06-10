@@ -15,7 +15,6 @@ def build_orchestrator(config: AppConfig) -> CacheOrchestrator:
         embedder=embedder,
         llm_provider=llm_provider,
         vector_store=vector_store,
-        similarity_threshold=config.similarity_threshold,
     )
 
 

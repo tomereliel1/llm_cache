@@ -23,6 +23,14 @@ class LLMConfig:
 @dataclass(frozen=True)
 class VectorStoreConfig:
     provider: str
+    similarity_threshold: float = 0.8
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.similarity_threshold <= 1:
+            raise ConfigError(
+                "similarity_threshold must be between 0 and 1. "
+                f"Got: {self.similarity_threshold}"
+            )
 
 
 @dataclass(frozen=True)
@@ -30,10 +38,3 @@ class AppConfig:
     embedding: EmbeddingConfig
     llm: LLMConfig
     vector_store: VectorStoreConfig
-    similarity_threshold: float = 0.8
-
-    def __post_init__(self) -> None:
-        if not 0 <= self.similarity_threshold <= 1:
-            raise ConfigError(
-                f"similarity_threshold must be between 0 and 1. Got: {self.similarity_threshold}"
-            )

@@ -17,8 +17,10 @@ def _app_config_with_threshold(similarity_threshold: float) -> AppConfig:
     return AppConfig(
         embedding=EmbeddingConfig(provider="ollama", model="embeddinggemma"),
         llm=LLMConfig(provider="ollama", model="gemma3:4b"),
-        vector_store=VectorStoreConfig(provider="vector-store-miss-stub"),
-        similarity_threshold=similarity_threshold,
+        vector_store=VectorStoreConfig(
+            provider="vector-store-miss-stub",
+            similarity_threshold=similarity_threshold,
+        ),
     )
 
 
@@ -28,7 +30,7 @@ def test_app_config_accepts_similarity_threshold_in_range(
 ) -> None:
     config = _app_config_with_threshold(similarity_threshold)
 
-    assert config.similarity_threshold == similarity_threshold
+    assert config.vector_store.similarity_threshold == similarity_threshold
 
 
 @pytest.mark.parametrize("similarity_threshold", [-0.1, 1.1])
@@ -116,6 +118,15 @@ def test_create_vector_store_returns_vector_store_hit_stub() -> None:
 
     assert isinstance(vector_store, VectorStoreHitStub)
     assert vector_store.search_similar([0.1]).response == "cached answer"
+
+
+def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
+    vector_store = create_vector_store(
+        VectorStoreConfig(provider="vector-store-hit-stub", similarity_threshold=0.95)
+    )
+
+    assert isinstance(vector_store, VectorStoreHitStub)
+    assert vector_store.similarity_threshold == 0.95
 
 
 def test_create_vector_store_normalizes_provider_name() -> None:

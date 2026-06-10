@@ -42,7 +42,6 @@ def test_run_query_returns_query_result() -> None:
         embedder=EmbedderStub(),
         llm_provider=LLMProviderSpy(),
         vector_store=VectorStoreMissStub(),
-        similarity_threshold=0.8,
     )
 
     result = main.run_query(orchestrator, "What is semantic caching?")
