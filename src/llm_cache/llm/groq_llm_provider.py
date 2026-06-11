@@ -2,18 +2,33 @@ import os
 
 from groq import APIConnectionError, APIStatusError, Groq
 
+from llm_cache.health.health_check_result import HealthCheckResult
+
 from .i_llm_provider import ILLMProvider
 
 
 class GroqLLMProvider(ILLMProvider):
-    def __init__(self, model_name="llama-3.1-8b-instant", api_key: str | None = None):
+    def __init__(
+        self,
+        model_name="llama-3.1-8b-instant",
+        api_key: str | None = None,
+        api_key_env: str = "GROQ_API_KEY",
+    ):
         self.model_name = model_name
-        self.api_key = api_key or os.environ.get("GROQ_API_KEY")
-
+        self.api_key_env = api_key_env
+        self.api_key = api_key or os.environ.get(api_key_env)
         if not self.api_key:
-            raise RuntimeError("GROQ_API_KEY is not set. Run: export GROQ_API_KEY='your_api_key'")
+            raise RuntimeError(
+                f"{self.api_key_env} is not set. Run: export {self.api_key_env}='your_api_key'"
+            )
 
         self.client = Groq(api_key=self.api_key)
+
+    def health_check(self) -> HealthCheckResult:
+        return HealthCheckResult.ok(
+            name="llm:groq",
+            message=f"{self.api_key_env} is configured",
+        )
 
     def generate_answer(self, prompt):
         print("Prompt received. Sending request to Groq, this may take a while...")

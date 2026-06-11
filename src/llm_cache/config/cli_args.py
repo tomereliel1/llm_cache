@@ -98,6 +98,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print supported providers, models, and defaults, then exit.",
     )
+    parser.add_argument(
+        "--check-setup",
+        action="store_true",
+        help="Validate selected providers and configuration, then exit without running a query.",
+    )
 
     return parser
 

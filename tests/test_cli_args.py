@@ -23,6 +23,13 @@ def test_parse_cli_args_uses_registry_defaults() -> None:
     assert args.llm_model == default_llm_model(DEFAULT_LLM_PROVIDER)
     assert args.vector_store_provider == DEFAULT_VECTOR_STORE_PROVIDER
     assert args.similarity_threshold == DEFAULT_SIMILARITY_THRESHOLD
+    assert args.check_setup is False
+
+
+def test_parse_cli_args_accepts_check_setup() -> None:
+    args = parse_cli_args(["--check-setup"])
+
+    assert args.check_setup is True
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_LLM_PROVIDERS.keys())

@@ -34,10 +34,14 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
         if not api_key:
             raise ConfigError(
                 f"Missing Groq API key. Set environment variable {api_key_env} "
-                "or configure LLMConfig.api_key_env."
+                f"by running: export {api_key_env}='your_api_key'"
             )
 
-        return GroqLLMProvider(model_name=config.model, api_key=api_key)
+        return GroqLLMProvider(
+            model_name=config.model,
+            api_key=api_key,
+            api_key_env=api_key_env,
+        )
 
     raise ConfigError(
         f"Unknown LLM provider '{config.provider}'. "
