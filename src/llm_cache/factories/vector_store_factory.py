@@ -5,6 +5,7 @@ from llm_cache.config.provider_options import (
 )
 from llm_cache.test_doubles.vector_store_hit_stub import VectorStoreHitStub
 from llm_cache.test_doubles.vector_store_miss_stub import VectorStoreMissStub
+from llm_cache.vector_store.in_memory_vector_store import InMemoryVectorStore
 from llm_cache.vector_store.i_vector_store import IVectorStore
 
 
@@ -16,6 +17,9 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
 
     if provider == "vector-store-hit-stub":
         return VectorStoreHitStub(similarity_threshold=config.similarity_threshold)
+
+    if provider == "in-memory":
+        return InMemoryVectorStore(similarity_threshold=config.similarity_threshold)
 
     raise ConfigError(
         f"Unknown vector store provider '{config.provider}'. "

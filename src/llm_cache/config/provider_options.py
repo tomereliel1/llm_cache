@@ -60,6 +60,10 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, ProviderOption] = {
         name="vector-store-hit-stub",
         description="Test double vector store that always returns a cache hit.",
     ),
+    "in-memory": ProviderOption(
+        name="in-memory",
+        description="Local in-memory vector store using cosine similarity.",
+    ),
 }
 
 

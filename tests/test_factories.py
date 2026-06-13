@@ -11,6 +11,7 @@ from llm_cache.embedding import OllamaEmbedder
 from llm_cache.factories import create_embedder, create_llm_provider, create_vector_store
 from llm_cache.llm import GroqLLMProvider, OllamaLLMProvider
 from llm_cache.test_doubles import VectorStoreHitStub, VectorStoreMissStub
+from llm_cache.vector_store import InMemoryVectorStore
 
 
 def _app_config_with_threshold(similarity_threshold: float) -> AppConfig:
@@ -120,12 +121,18 @@ def test_create_vector_store_returns_vector_store_hit_stub() -> None:
     assert vector_store.search_similar([0.1]).response == "cached answer"
 
 
+def test_create_vector_store_returns_in_memory_vector_store() -> None:
+    vector_store = create_vector_store(VectorStoreConfig(provider="in-memory"))
+
+    assert isinstance(vector_store, InMemoryVectorStore)
+
+
 def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
     vector_store = create_vector_store(
-        VectorStoreConfig(provider="vector-store-hit-stub", similarity_threshold=0.95)
+        VectorStoreConfig(provider="in-memory", similarity_threshold=0.95)
     )
 
-    assert isinstance(vector_store, VectorStoreHitStub)
+    assert isinstance(vector_store, InMemoryVectorStore)
     assert vector_store.similarity_threshold == 0.95
 
 
