@@ -172,6 +172,6 @@ def app_config_from_args(args: argparse.Namespace) -> AppConfig:
         ),
         vector_store=VectorStoreConfig(
             provider=args.vector_store_provider,
+            similarity_threshold=args.similarity_threshold,
         ),
-        similarity_threshold=args.similarity_threshold,
     )

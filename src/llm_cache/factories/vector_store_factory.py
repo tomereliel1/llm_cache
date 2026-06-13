@@ -12,10 +12,10 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
     provider = normalize_provider_name(config.provider)
 
     if provider == "vector-store-miss-stub":
-        return VectorStoreMissStub()
+        return VectorStoreMissStub(similarity_threshold=config.similarity_threshold)
 
     if provider == "vector-store-hit-stub":
-        return VectorStoreHitStub()
+        return VectorStoreHitStub(similarity_threshold=config.similarity_threshold)
 
     raise ConfigError(
         f"Unknown vector store provider '{config.provider}'. "

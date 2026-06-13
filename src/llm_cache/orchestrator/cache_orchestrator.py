@@ -18,15 +18,10 @@ class CacheOrchestrator:
         embedder: IEmbedder,
         llm_provider: ILLMProvider,
         vector_store: IVectorStore,
-        similarity_threshold: float = 0.85,
     ) -> None:
-        if not 0 <= similarity_threshold <= 1:
-            raise ValueError("similarity_threshold must be between 0 and 1")
-
         self._embedder = embedder
         self._llm_provider = llm_provider
         self._vector_store = vector_store
-        self._similarity_threshold = similarity_threshold
 
     def query(self, prompt: str) -> QueryResult:
         """Return a cached answer when possible, otherwise generate and store a new answer."""

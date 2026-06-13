@@ -82,7 +82,7 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.llm.provider == args.llm_provider
     assert config.llm.model == args.llm_model
     assert config.vector_store.provider == args.vector_store_provider
-    assert config.similarity_threshold == args.similarity_threshold
+    assert config.vector_store.similarity_threshold == args.similarity_threshold
 
 
 @pytest.mark.parametrize("threshold", ["-0.1", "1.1"])
