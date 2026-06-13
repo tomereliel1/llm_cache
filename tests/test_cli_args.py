@@ -76,6 +76,29 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.llm.model == args.llm_model
     assert config.vector_store.provider == args.vector_store_provider
     assert config.vector_store.similarity_threshold == args.similarity_threshold
+    assert config.vector_store.persist_path == args.vector_store_path
+    assert config.vector_store.collection_name == args.vector_store_collection
+    assert config.vector_store.max_capacity == args.cache_max_capacity
+
+
+def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
+    args = parse_cli_args(
+        [
+            "--vector-store-provider",
+            "chroma",
+            "--vector-store-path",
+            ".cache/custom",
+            "--vector-store-collection",
+            "custom_collection",
+            "--cache-max-capacity",
+            "42",
+        ]
+    )
+    config = app_config_from_args(args)
+
+    assert config.vector_store.persist_path == ".cache/custom"
+    assert config.vector_store.collection_name == "custom_collection"
+    assert config.vector_store.max_capacity == 42
 
 
 @pytest.mark.parametrize("threshold", ["-0.1", "1.1"])
@@ -87,6 +110,23 @@ def test_invalid_similarity_threshold_exits(threshold: str) -> None:
 def test_empty_prompt_exits() -> None:
     with pytest.raises(SystemExit):
         parse_cli_args(["--prompt", ""])
+
+
+@pytest.mark.parametrize(
+    ("flag", "value"),
+    [
+        ("--vector-store-path", ""),
+        ("--vector-store-collection", ""),
+    ],
+)
+def test_empty_vector_store_config_value_exits(flag: str, value: str) -> None:
+    with pytest.raises(SystemExit):
+        parse_cli_args([flag, value])
+
+
+def test_invalid_cache_max_capacity_exits() -> None:
+    with pytest.raises(SystemExit):
+        parse_cli_args(["--cache-max-capacity", "0"])
 
 
 def test_invalid_llm_provider_exits() -> None:

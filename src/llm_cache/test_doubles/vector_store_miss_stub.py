@@ -4,8 +4,9 @@ from llm_cache.vector_store import IVectorStore, VectorStoreResult
 class VectorStoreMissStub(IVectorStore):
     """Vector-store stub that always returns a cache miss."""
 
-    def __init__(self, similarity_threshold: float = 0.8) -> None:
+    def __init__(self, similarity_threshold: float = 0.8, max_capacity: int = 1000) -> None:
         self.similarity_threshold = similarity_threshold
+        self.max_capacity = max_capacity
         self.insert_calls_count = 0
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:

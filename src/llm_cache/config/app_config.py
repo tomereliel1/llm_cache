@@ -24,6 +24,9 @@ class LLMConfig:
 class VectorStoreConfig:
     provider: str
     similarity_threshold: float = 0.8
+    persist_path: str = ".cache/chroma"
+    collection_name: str = "llm_cache"
+    max_capacity: int = 1000
 
     def __post_init__(self) -> None:
         if not 0 <= self.similarity_threshold <= 1:
@@ -31,6 +34,15 @@ class VectorStoreConfig:
                 "similarity_threshold must be between 0 and 1. "
                 f"Got: {self.similarity_threshold}"
             )
+
+        if not self.persist_path.strip():
+            raise ConfigError("persist_path must be a non-empty string")
+
+        if not self.collection_name.strip():
+            raise ConfigError("collection_name must be a non-empty string")
+
+        if self.max_capacity < 1:
+            raise ConfigError(f"max_capacity must be at least 1. Got: {self.max_capacity}")
 
 
 @dataclass(frozen=True)

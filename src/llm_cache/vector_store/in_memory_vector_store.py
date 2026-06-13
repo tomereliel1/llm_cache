@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from time import monotonic
 
 from llm_cache.vector_store.i_vector_store import IVectorStore, VectorStoreResult
 
@@ -12,16 +13,22 @@ class _CacheEntry:
     prompt: str
     response: str
     vector: list[float]
+    created_at: float
+    last_accessed_at: float
 
 
 class InMemoryVectorStore(IVectorStore):
     """Simple local vector store using cosine similarity."""
 
-    def __init__(self, similarity_threshold: float = 0.8) -> None:
+    def __init__(self, similarity_threshold: float = 0.8, max_capacity: int = 1000) -> None:
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
 
+        if max_capacity < 1:
+            raise ValueError("max_capacity must be at least 1")
+
         self.similarity_threshold = similarity_threshold
+        self.max_capacity = max_capacity
         self._entries: list[_CacheEntry] = []
         self._next_id = 1
 
@@ -41,6 +48,7 @@ class InMemoryVectorStore(IVectorStore):
                 best_score = score
 
         if best_score >= self.similarity_threshold:
+            self._touch(best_entry.id)
             return VectorStoreResult(
                 found=True,
                 prompt=best_entry.prompt,
@@ -57,18 +65,43 @@ class InMemoryVectorStore(IVectorStore):
             raise ValueError("response must be a non-empty string")
 
         self._validate_vector(vector)
+        self._evict_if_needed()
 
         entry_id = f"entry-{self._next_id}"
         self._next_id += 1
+        now = monotonic()
         self._entries.append(
             _CacheEntry(
                 id=entry_id,
                 prompt=prompt.strip(),
                 response=response,
                 vector=list(vector),
+                created_at=now,
+                last_accessed_at=now,
             )
         )
         return entry_id
+
+    def _touch(self, entry_id: str) -> None:
+        now = monotonic()
+        self._entries = [
+            _CacheEntry(
+                id=entry.id,
+                prompt=entry.prompt,
+                response=entry.response,
+                vector=entry.vector,
+                created_at=entry.created_at,
+                last_accessed_at=now if entry.id == entry_id else entry.last_accessed_at,
+            )
+            for entry in self._entries
+        ]
+
+    def _evict_if_needed(self) -> None:
+        if len(self._entries) < self.max_capacity:
+            return
+
+        victim = min(self._entries, key=lambda entry: entry.last_accessed_at)
+        self._entries = [entry for entry in self._entries if entry.id != victim.id]
 
     @staticmethod
     def _cosine_similarity(left: list[float], right: list[float]) -> float:

@@ -64,6 +64,10 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, ProviderOption] = {
         name="in-memory",
         description="Local in-memory vector store using cosine similarity.",
     ),
+    "chroma": ProviderOption(
+        name="chroma",
+        description="Persistent Chroma vector store using Chroma's default distance behavior.",
+    ),
 }
 
 

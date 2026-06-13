@@ -5,6 +5,7 @@ from llm_cache.config.provider_options import (
 )
 from llm_cache.test_doubles.vector_store_hit_stub import VectorStoreHitStub
 from llm_cache.test_doubles.vector_store_miss_stub import VectorStoreMissStub
+from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
 from llm_cache.vector_store.in_memory_vector_store import InMemoryVectorStore
 from llm_cache.vector_store.i_vector_store import IVectorStore
 
@@ -13,13 +14,30 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
     provider = normalize_provider_name(config.provider)
 
     if provider == "vector-store-miss-stub":
-        return VectorStoreMissStub(similarity_threshold=config.similarity_threshold)
+        return VectorStoreMissStub(
+            similarity_threshold=config.similarity_threshold,
+            max_capacity=config.max_capacity,
+        )
 
     if provider == "vector-store-hit-stub":
-        return VectorStoreHitStub(similarity_threshold=config.similarity_threshold)
+        return VectorStoreHitStub(
+            similarity_threshold=config.similarity_threshold,
+            max_capacity=config.max_capacity,
+        )
 
     if provider == "in-memory":
-        return InMemoryVectorStore(similarity_threshold=config.similarity_threshold)
+        return InMemoryVectorStore(
+            similarity_threshold=config.similarity_threshold,
+            max_capacity=config.max_capacity,
+        )
+
+    if provider == "chroma":
+        return ChromaVectorStore(
+            similarity_threshold=config.similarity_threshold,
+            persist_path=config.persist_path,
+            collection_name=config.collection_name,
+            max_capacity=config.max_capacity,
+        )
 
     raise ConfigError(
         f"Unknown vector store provider '{config.provider}'. "
