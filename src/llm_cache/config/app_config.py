@@ -24,7 +24,7 @@ class LLMConfig:
 class VectorStoreConfig:
     provider: str
     similarity_threshold: float = 0.8
-    persist_path: str = ".cache/chroma"
+    persist_path: str = ".cache/vector_store"
     collection_name: str = "llm_cache"
     max_capacity: int = 1000
 

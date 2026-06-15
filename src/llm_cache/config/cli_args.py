@@ -96,7 +96,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--vector-store-path",
         type=str,
-        default=".cache/chroma",
+        default=".cache/vector_store",
         help="Local persistence path for vector stores that support persistence.",
     )
     parser.add_argument(
