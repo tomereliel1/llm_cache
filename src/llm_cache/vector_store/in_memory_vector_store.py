@@ -4,7 +4,10 @@ import math
 from dataclasses import dataclass
 from time import monotonic
 
+from llm_cache.vector_store.cache_entry_metadata import CacheEntryMetadata
+from llm_cache.vector_store.i_eviction_policy import IEvictionPolicy
 from llm_cache.vector_store.i_vector_store import IVectorStore, VectorStoreResult
+from llm_cache.vector_store.lru_eviction_policy import LRUEvictionPolicy
 
 
 @dataclass(frozen=True)
@@ -20,7 +23,12 @@ class _CacheEntry:
 class InMemoryVectorStore(IVectorStore):
     """Simple local vector store using cosine similarity."""
 
-    def __init__(self, similarity_threshold: float = 0.8, max_capacity: int = 1000) -> None:
+    def __init__(
+        self,
+        similarity_threshold: float = 0.8,
+        max_capacity: int = 1000,
+        eviction_policy: IEvictionPolicy | None = None,
+    ) -> None:
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
 
@@ -29,6 +37,7 @@ class InMemoryVectorStore(IVectorStore):
 
         self.similarity_threshold = similarity_threshold
         self.max_capacity = max_capacity
+        self.eviction_policy = eviction_policy or LRUEvictionPolicy()
         self._entries: list[_CacheEntry] = []
         self._next_id = 1
 
@@ -100,8 +109,17 @@ class InMemoryVectorStore(IVectorStore):
         if len(self._entries) < self.max_capacity:
             return
 
-        victim = min(self._entries, key=lambda entry: entry.last_accessed_at)
-        self._entries = [entry for entry in self._entries if entry.id != victim.id]
+        victim_id = self.eviction_policy.choose_victim(
+            [
+                CacheEntryMetadata(
+                    id=entry.id,
+                    created_at=entry.created_at,
+                    last_accessed_at=entry.last_accessed_at,
+                )
+                for entry in self._entries
+            ]
+        )
+        self._entries = [entry for entry in self._entries if entry.id != victim_id]
 
     @staticmethod
     def _cosine_similarity(left: list[float], right: list[float]) -> float:

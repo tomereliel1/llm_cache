@@ -2,11 +2,13 @@ import pytest
 
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.config.provider_options import (
+    DEFAULT_EVICTION_POLICY,
     DEFAULT_EMBEDDING_PROVIDER,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
     SUPPORTED_EMBEDDING_PROVIDERS,
+    SUPPORTED_EVICTION_POLICIES,
     SUPPORTED_LLM_PROVIDERS,
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     default_embedding_model,
@@ -23,6 +25,7 @@ def test_parse_cli_args_uses_registry_defaults() -> None:
     assert args.llm_model == default_llm_model(DEFAULT_LLM_PROVIDER)
     assert args.vector_store_provider == DEFAULT_VECTOR_STORE_PROVIDER
     assert args.similarity_threshold == DEFAULT_SIMILARITY_THRESHOLD
+    assert args.eviction_policy == DEFAULT_EVICTION_POLICY
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_LLM_PROVIDERS.keys())
@@ -79,6 +82,7 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.vector_store.persist_path == args.vector_store_path
     assert config.vector_store.collection_name == args.vector_store_collection
     assert config.vector_store.max_capacity == args.cache_max_capacity
+    assert config.vector_store.eviction_policy == args.eviction_policy
 
 
 def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
@@ -92,6 +96,8 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
             "custom_collection",
             "--cache-max-capacity",
             "42",
+            "--eviction-policy",
+            "lru",
         ]
     )
     config = app_config_from_args(args)
@@ -99,6 +105,14 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
     assert config.vector_store.persist_path == ".cache/custom"
     assert config.vector_store.collection_name == "custom_collection"
     assert config.vector_store.max_capacity == 42
+    assert config.vector_store.eviction_policy == "lru"
+
+
+@pytest.mark.parametrize("policy", SUPPORTED_EVICTION_POLICIES.keys())
+def test_eviction_policy_accepts_supported_policy(policy: str) -> None:
+    args = parse_cli_args(["--eviction-policy", policy])
+
+    assert args.eviction_policy == policy
 
 
 @pytest.mark.parametrize("threshold", ["-0.1", "1.1"])
@@ -132,6 +146,11 @@ def test_invalid_cache_max_capacity_exits() -> None:
 def test_invalid_llm_provider_exits() -> None:
     with pytest.raises(SystemExit):
         parse_cli_args(["--llm-provider", "bad-provider"])
+
+
+def test_invalid_eviction_policy_exits() -> None:
+    with pytest.raises(SystemExit):
+        parse_cli_args(["--eviction-policy", "bad-policy"])
 
 
 def test_invalid_llm_model_for_provider_exits() -> None:

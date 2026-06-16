@@ -1,6 +1,11 @@
 import pytest
 
-from llm_cache.vector_store import InMemoryVectorStore
+from llm_cache.vector_store import CacheEntryMetadata, IEvictionPolicy, InMemoryVectorStore
+
+
+class _FirstEntryEvictionPolicy(IEvictionPolicy):
+    def choose_victim(self, entries: list[CacheEntryMetadata]) -> str:
+        return entries[0].id
 
 
 def test_empty_store_returns_miss() -> None:
@@ -80,6 +85,26 @@ def test_store_evicts_least_recently_used_entry_when_capacity_is_full() -> None:
     assert second_result.found is False
     assert third_result.found is True
     assert third_result.response == "third response"
+
+
+def test_store_uses_injected_eviction_policy_when_capacity_is_full() -> None:
+    vector_store = InMemoryVectorStore(
+        similarity_threshold=0.8,
+        max_capacity=2,
+        eviction_policy=_FirstEntryEvictionPolicy(),
+    )
+    vector_store.store(prompt="first", response="first response", vector=[1.0, 0.0])
+    vector_store.store(prompt="second", response="second response", vector=[0.0, 1.0])
+
+    vector_store.search_similar([1.0, 0.0])
+    vector_store.store(prompt="third", response="third response", vector=[0.7, 0.7])
+
+    first_result = vector_store.search_similar([1.0, 0.0])
+    second_result = vector_store.search_similar([0.0, 1.0])
+
+    assert first_result.found is False
+    assert second_result.found is True
+    assert second_result.response == "second response"
 
 
 @pytest.mark.parametrize("threshold", [-0.1, 1.1])

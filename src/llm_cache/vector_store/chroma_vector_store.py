@@ -5,6 +5,8 @@ from uuid import uuid4
 
 import chromadb
 
+from llm_cache.vector_store.cache_entry_metadata import CacheEntryMetadata
+from llm_cache.vector_store.i_eviction_policy import IEvictionPolicy
 from llm_cache.vector_store.i_vector_store import IVectorStore, VectorStoreResult
 
 
@@ -17,6 +19,7 @@ class ChromaVectorStore(IVectorStore):
         persist_path: str = ".cache/chroma",
         collection_name: str = "llm_cache",
         max_capacity: int = 1000,
+        eviction_policy: IEvictionPolicy | None = None,
     ) -> None:
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
@@ -34,6 +37,7 @@ class ChromaVectorStore(IVectorStore):
         self.persist_path = persist_path
         self.collection_name = collection_name
         self.max_capacity = max_capacity
+        self.eviction_policy = eviction_policy
 
         self._client = chromadb.PersistentClient(path=persist_path)
         self._collection = self._client.get_or_create_collection(
@@ -107,6 +111,9 @@ class ChromaVectorStore(IVectorStore):
         self._collection.update(ids=[entry_id], metadatas=[updated_metadata])
 
     def _evict_if_needed(self) -> None:
+        if self.eviction_policy is None:
+            return
+
         if self._collection.count() < self.max_capacity:
             return
 
@@ -116,10 +123,16 @@ class ChromaVectorStore(IVectorStore):
         if not ids:
             return
 
-        victim_id = min(
-            zip(ids, metadatas, strict=True),
-            key=lambda item: (item[1] or {}).get("last_accessed_at", 0),
-        )[0]
+        victim_id = self.eviction_policy.choose_victim(
+            [
+                CacheEntryMetadata(
+                    id=entry_id,
+                    created_at=(metadata or {}).get("created_at", 0),
+                    last_accessed_at=(metadata or {}).get("last_accessed_at", 0),
+                )
+                for entry_id, metadata in zip(ids, metadatas, strict=True)
+            ]
+        )
         self._collection.delete(ids=[victim_id])
 
     @staticmethod
