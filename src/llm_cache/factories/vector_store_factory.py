@@ -6,8 +6,8 @@ from llm_cache.config.provider_options import (
 from llm_cache.test_doubles.vector_store_hit_stub import VectorStoreHitStub
 from llm_cache.test_doubles.vector_store_miss_stub import VectorStoreMissStub
 from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
-from llm_cache.vector_store.in_memory_vector_store import InMemoryVectorStore
 from llm_cache.vector_store.i_vector_store import IVectorStore
+from llm_cache.vector_store.in_memory_vector_store import InMemoryVectorStore
 
 from .eviction_policy_factory import create_eviction_policy
 

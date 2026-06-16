@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Quality Checks"
+  short_description: "Run lint, format, and compile checks"
+  default_prompt: "Use $project-quality-checks to check this project and ask before fixing issues."
+policy:
+  allow_implicit_invocation: false

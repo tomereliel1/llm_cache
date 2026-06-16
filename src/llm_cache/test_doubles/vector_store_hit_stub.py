@@ -1,3 +1,4 @@
+from llm_cache.health.health_check_result import HealthCheckResult
 from llm_cache.vector_store import IVectorStore, VectorStoreResult
 
 
@@ -27,3 +28,9 @@ class VectorStoreHitStub(IVectorStore):
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
         self.insert_calls_count += 1
         return "inserted"
+
+    def health_check(self) -> HealthCheckResult:
+        return HealthCheckResult.ok(
+            name="vector-store:hit-stub",
+            message="VectorStoreHitStub is ready",
+        )

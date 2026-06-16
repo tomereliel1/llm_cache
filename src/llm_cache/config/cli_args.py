@@ -10,8 +10,8 @@ from llm_cache.config.app_config import (
     VectorStoreConfig,
 )
 from llm_cache.config.provider_options import (
-    DEFAULT_EVICTION_POLICY,
     DEFAULT_EMBEDDING_PROVIDER,
+    DEFAULT_EVICTION_POLICY,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROMPT,
     DEFAULT_SIMILARITY_THRESHOLD,
@@ -124,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--list-supported-configs",
         action="store_true",
         help="Print supported providers, models, and defaults, then exit.",
+    )
+    parser.add_argument(
+        "--check-setup",
+        action="store_true",
+        help="Validate selected providers and configuration, then exit without running a query.",
     )
 
     return parser

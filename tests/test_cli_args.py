@@ -2,8 +2,8 @@ import pytest
 
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.config.provider_options import (
-    DEFAULT_EVICTION_POLICY,
     DEFAULT_EMBEDDING_PROVIDER,
+    DEFAULT_EVICTION_POLICY,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
