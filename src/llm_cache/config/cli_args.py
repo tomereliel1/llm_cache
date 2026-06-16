@@ -11,11 +11,13 @@ from llm_cache.config.app_config import (
 )
 from llm_cache.config.provider_options import (
     DEFAULT_EMBEDDING_PROVIDER,
+    DEFAULT_EVICTION_POLICY,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROMPT,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
     SUPPORTED_EMBEDDING_PROVIDERS,
+    SUPPORTED_EVICTION_POLICIES,
     SUPPORTED_LLM_PROVIDERS,
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     default_embedding_model,
@@ -94,6 +96,31 @@ def build_parser() -> argparse.ArgumentParser:
         help=(f"Similarity threshold between 0 and 1. Default: {DEFAULT_SIMILARITY_THRESHOLD}"),
     )
     parser.add_argument(
+        "--vector-store-path",
+        type=str,
+        default=".cache/vector_store",
+        help="Local persistence path for vector stores that support persistence.",
+    )
+    parser.add_argument(
+        "--vector-store-collection",
+        type=str,
+        default="llm_cache",
+        help="Collection name for vector stores that support named collections.",
+    )
+    parser.add_argument(
+        "--cache-max-capacity",
+        type=int,
+        default=1000,
+        help="Maximum number of entries the vector cache can store. Default: 1000",
+    )
+    parser.add_argument(
+        "--eviction-policy",
+        type=str,
+        choices=tuple(SUPPORTED_EVICTION_POLICIES),
+        default=DEFAULT_EVICTION_POLICY,
+        help=f"Cache eviction policy. Default: {DEFAULT_EVICTION_POLICY}",
+    )
+    parser.add_argument(
         "--list-supported-configs",
         action="store_true",
         help="Print supported providers, models, and defaults, then exit.",
@@ -118,6 +145,7 @@ def parse_cli_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     args.embedding_provider = normalize_provider_name(args.embedding_provider)
     args.llm_provider = normalize_provider_name(args.llm_provider)
     args.vector_store_provider = normalize_provider_name(args.vector_store_provider)
+    args.eviction_policy = normalize_provider_name(args.eviction_policy)
 
     if args.embedding_model is None:
         args.embedding_model = default_embedding_model(args.embedding_provider)
@@ -142,6 +170,15 @@ def _validate_args(
 
     if not 0 <= args.similarity_threshold <= 1:
         parser.error("--similarity-threshold must be between 0 and 1")
+
+    if not args.vector_store_path.strip():
+        parser.error("--vector-store-path must not be empty")
+
+    if not args.vector_store_collection.strip():
+        parser.error("--vector-store-collection must not be empty")
+
+    if args.cache_max_capacity < 1:
+        parser.error("--cache-max-capacity must be at least 1")
 
     embedding_option = SUPPORTED_EMBEDDING_PROVIDERS[args.embedding_provider]
     if args.embedding_model not in embedding_option.supported_models:
@@ -173,5 +210,9 @@ def app_config_from_args(args: argparse.Namespace) -> AppConfig:
         vector_store=VectorStoreConfig(
             provider=args.vector_store_provider,
             similarity_threshold=args.similarity_threshold,
+            persist_path=args.vector_store_path,
+            collection_name=args.vector_store_collection,
+            max_capacity=args.cache_max_capacity,
+            eviction_policy=args.eviction_policy,
         ),
     )

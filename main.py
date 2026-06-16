@@ -55,7 +55,6 @@ def main() -> None:
         embedder=embedder,
         llm_provider=llm_provider,
         vector_store=vector_store,
-        similarity_threshold=config.similarity_threshold,
     )
     result = run_query(orchestrator, args.prompt)
     print_result(args.prompt, result)

@@ -19,10 +19,23 @@ class ProviderOption:
 
 DEFAULT_PROMPT = "What is the capital of Israel?"
 DEFAULT_SIMILARITY_THRESHOLD = 0.8
+DEFAULT_EVICTION_POLICY = "default"
 
 DEFAULT_EMBEDDING_PROVIDER = "ollama"
 DEFAULT_LLM_PROVIDER = "ollama"
 DEFAULT_VECTOR_STORE_PROVIDER = "vector-store-miss-stub"
+
+
+SUPPORTED_EVICTION_POLICIES: dict[str, ProviderOption] = {
+    "default": ProviderOption(
+        name="default",
+        description="Use the selected vector store provider's default behavior.",
+    ),
+    "lru": ProviderOption(
+        name="lru",
+        description="Evict the least recently used cache entry.",
+    ),
+}
 
 
 SUPPORTED_EMBEDDING_PROVIDERS: dict[str, ModelProviderOption] = {
@@ -59,6 +72,14 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, ProviderOption] = {
     "vector-store-hit-stub": ProviderOption(
         name="vector-store-hit-stub",
         description="Test double vector store that always returns a cache hit.",
+    ),
+    "in-memory": ProviderOption(
+        name="in-memory",
+        description="Local in-memory vector store using cosine similarity.",
+    ),
+    "chroma": ProviderOption(
+        name="chroma",
+        description="Persistent Chroma vector store using Chroma's default distance behavior.",
     ),
 }
 
@@ -120,6 +141,16 @@ def format_supported_configs() -> str:
             ]
         )
 
+    lines.append("Eviction policies:")
+    for policy in SUPPORTED_EVICTION_POLICIES.values():
+        lines.extend(
+            [
+                f"  - {policy.name}",
+                f"    description: {policy.description}",
+                "",
+            ]
+        )
+
     lines.extend(
         [
             "Global defaults:",
@@ -130,6 +161,7 @@ def format_supported_configs() -> str:
             f"  llm model: {default_llm_model(DEFAULT_LLM_PROVIDER)}",
             f"  vector-store provider: {DEFAULT_VECTOR_STORE_PROVIDER}",
             f"  similarity threshold: {DEFAULT_SIMILARITY_THRESHOLD}",
+            f"  eviction policy: {DEFAULT_EVICTION_POLICY}",
         ]
     )
 

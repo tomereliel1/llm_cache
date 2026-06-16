@@ -8,9 +8,15 @@ from llm_cache.config import (
     VectorStoreConfig,
 )
 from llm_cache.embedding import OllamaEmbedder
-from llm_cache.factories import create_embedder, create_llm_provider, create_vector_store
+from llm_cache.factories import (
+    create_embedder,
+    create_eviction_policy,
+    create_llm_provider,
+    create_vector_store,
+)
 from llm_cache.llm import GroqLLMProvider, OllamaLLMProvider
 from llm_cache.test_doubles import VectorStoreHitStub, VectorStoreMissStub
+from llm_cache.vector_store import ChromaVectorStore, InMemoryVectorStore, LRUEvictionPolicy
 
 
 def _app_config_with_threshold(similarity_threshold: float) -> AppConfig:
@@ -120,13 +126,71 @@ def test_create_vector_store_returns_vector_store_hit_stub() -> None:
     assert vector_store.search_similar([0.1]).response == "cached answer"
 
 
-def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
+def test_create_vector_store_returns_in_memory_vector_store() -> None:
+    vector_store = create_vector_store(VectorStoreConfig(provider="in-memory"))
+
+    assert isinstance(vector_store, InMemoryVectorStore)
+
+
+def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
     vector_store = create_vector_store(
-        VectorStoreConfig(provider="vector-store-hit-stub", similarity_threshold=0.95)
+        VectorStoreConfig(provider="chroma", persist_path=str(tmp_path))
     )
 
-    assert isinstance(vector_store, VectorStoreHitStub)
+    assert isinstance(vector_store, ChromaVectorStore)
+    assert vector_store.eviction_policy is None
+
+
+def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
+    vector_store = create_vector_store(
+        VectorStoreConfig(provider="in-memory", similarity_threshold=0.95)
+    )
+
+    assert isinstance(vector_store, InMemoryVectorStore)
     assert vector_store.similarity_threshold == 0.95
+
+
+def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
+    vector_store = create_vector_store(
+        VectorStoreConfig(
+            provider="chroma",
+            similarity_threshold=0.95,
+            persist_path=str(tmp_path),
+            collection_name="factory_test",
+            max_capacity=42,
+            eviction_policy="lru",
+        )
+    )
+
+    assert isinstance(vector_store, ChromaVectorStore)
+    assert vector_store.similarity_threshold == 0.95
+    assert vector_store.persist_path == str(tmp_path)
+    assert vector_store.collection_name == "factory_test"
+    assert vector_store.max_capacity == 42
+    assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+
+
+def test_create_eviction_policy_returns_lru_policy() -> None:
+    policy = create_eviction_policy("lru")
+
+    assert isinstance(policy, LRUEvictionPolicy)
+
+
+def test_create_eviction_policy_returns_none_for_default_policy() -> None:
+    policy = create_eviction_policy("default")
+
+    assert policy is None
+
+
+def test_create_eviction_policy_normalizes_policy_name() -> None:
+    policy = create_eviction_policy(" LRU ")
+
+    assert isinstance(policy, LRUEvictionPolicy)
+
+
+def test_create_eviction_policy_rejects_unknown_policy() -> None:
+    with pytest.raises(ConfigError, match="Unknown eviction policy 'unknown'.*lru"):
+        create_eviction_policy("unknown")
 
 
 def test_create_vector_store_normalizes_provider_name() -> None:

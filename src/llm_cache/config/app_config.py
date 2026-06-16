@@ -1,5 +1,11 @@
 from dataclasses import dataclass
 
+from llm_cache.config.provider_options import (
+    DEFAULT_EVICTION_POLICY,
+    SUPPORTED_EVICTION_POLICIES,
+    normalize_provider_name,
+)
+
 
 class ConfigError(ValueError):
     """Raised when application configuration is invalid."""
@@ -24,11 +30,31 @@ class LLMConfig:
 class VectorStoreConfig:
     provider: str
     similarity_threshold: float = 0.8
+    persist_path: str = ".cache/vector_store"
+    collection_name: str = "llm_cache"
+    max_capacity: int = 1000
+    eviction_policy: str = DEFAULT_EVICTION_POLICY
 
     def __post_init__(self) -> None:
         if not 0 <= self.similarity_threshold <= 1:
             raise ConfigError(
                 f"similarity_threshold must be between 0 and 1. Got: {self.similarity_threshold}"
+            )
+
+        if not self.persist_path.strip():
+            raise ConfigError("persist_path must be a non-empty string")
+
+        if not self.collection_name.strip():
+            raise ConfigError("collection_name must be a non-empty string")
+
+        if self.max_capacity < 1:
+            raise ConfigError(f"max_capacity must be at least 1. Got: {self.max_capacity}")
+
+        normalized_policy = normalize_provider_name(self.eviction_policy)
+        if normalized_policy not in SUPPORTED_EVICTION_POLICIES:
+            raise ConfigError(
+                f"Unknown eviction policy '{self.eviction_policy}'. "
+                f"Supported eviction policies: {', '.join(SUPPORTED_EVICTION_POLICIES)}"
             )
 
 
