@@ -1,7 +1,25 @@
+import subprocess
+import sys
+
 import main
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.orchestrator import CacheOrchestrator, QueryResult
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy, VectorStoreMissStub
+
+
+def test_importing_main_does_not_import_chromadb() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; import main; print('chromadb' in sys.modules)",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.strip() == "False"
 
 
 def test_build_orchestrator_uses_factories(monkeypatch) -> None:

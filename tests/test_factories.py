@@ -16,7 +16,7 @@ from llm_cache.factories import (
 )
 from llm_cache.llm import GroqLLMProvider, OllamaLLMProvider
 from llm_cache.test_doubles import VectorStoreHitStub, VectorStoreMissStub
-from llm_cache.vector_store import ChromaVectorStore, InMemoryVectorStore, LRUEvictionPolicy
+from llm_cache.vector_store import InMemoryVectorStore, LRUEvictionPolicy
 
 
 def _app_config_with_threshold(similarity_threshold: float) -> AppConfig:
@@ -133,6 +133,8 @@ def test_create_vector_store_returns_in_memory_vector_store() -> None:
 
 
 def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
+    from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
+
     vector_store = create_vector_store(
         VectorStoreConfig(provider="chroma", persist_path=str(tmp_path))
     )
@@ -151,6 +153,8 @@ def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
 
 
 def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
+    from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
+
     vector_store = create_vector_store(
         VectorStoreConfig(
             provider="chroma",

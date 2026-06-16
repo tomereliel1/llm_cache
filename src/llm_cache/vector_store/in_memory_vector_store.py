@@ -133,8 +133,7 @@ class InMemoryVectorStore(IVectorStore):
             raise ValueError("vectors must not be zero vectors")
 
         dot_product = sum(
-            left_value * right_value
-            for left_value, right_value in zip(left, right, strict=True)
+            left_value * right_value for left_value, right_value in zip(left, right, strict=True)
         )
         return dot_product / (left_norm * right_norm)
 
