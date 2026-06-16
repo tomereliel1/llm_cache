@@ -140,7 +140,7 @@ def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
     )
 
     assert isinstance(vector_store, ChromaVectorStore)
-    assert vector_store.eviction_policy is None
+    assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
 
 
 def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
@@ -182,6 +182,18 @@ def test_create_eviction_policy_returns_lru_policy() -> None:
 
 def test_create_eviction_policy_returns_none_for_default_policy() -> None:
     policy = create_eviction_policy("default")
+
+    assert policy is None
+
+
+def test_create_eviction_policy_resolves_chroma_default_to_lru_policy() -> None:
+    policy = create_eviction_policy("default", vector_store_provider="chroma")
+
+    assert isinstance(policy, LRUEvictionPolicy)
+
+
+def test_create_eviction_policy_resolves_stub_default_to_none() -> None:
+    policy = create_eviction_policy("default", vector_store_provider="vector-store-miss-stub")
 
     assert policy is None
 

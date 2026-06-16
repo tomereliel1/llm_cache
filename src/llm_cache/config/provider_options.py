@@ -17,13 +17,20 @@ class ProviderOption:
     description: str
 
 
+@dataclass(frozen=True)
+class VectorStoreProviderOption:
+    name: str
+    default_eviction_policy: str
+    description: str
+
+
 DEFAULT_PROMPT = "What is the capital of Israel?"
 DEFAULT_SIMILARITY_THRESHOLD = 0.8
 DEFAULT_EVICTION_POLICY = "default"
 
 DEFAULT_EMBEDDING_PROVIDER = "ollama"
 DEFAULT_LLM_PROVIDER = "ollama"
-DEFAULT_VECTOR_STORE_PROVIDER = "vector-store-miss-stub"
+DEFAULT_VECTOR_STORE_PROVIDER = "chroma"
 
 
 SUPPORTED_EVICTION_POLICIES: dict[str, ProviderOption] = {
@@ -64,21 +71,25 @@ SUPPORTED_LLM_PROVIDERS: dict[str, ModelProviderOption] = {
 }
 
 
-SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, ProviderOption] = {
-    "vector-store-miss-stub": ProviderOption(
+SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, VectorStoreProviderOption] = {
+    "vector-store-miss-stub": VectorStoreProviderOption(
         name="vector-store-miss-stub",
+        default_eviction_policy="default",
         description="Test double vector store that always returns a cache miss.",
     ),
-    "vector-store-hit-stub": ProviderOption(
+    "vector-store-hit-stub": VectorStoreProviderOption(
         name="vector-store-hit-stub",
+        default_eviction_policy="default",
         description="Test double vector store that always returns a cache hit.",
     ),
-    "in-memory": ProviderOption(
+    "in-memory": VectorStoreProviderOption(
         name="in-memory",
+        default_eviction_policy="lru",
         description="Local in-memory vector store using cosine similarity.",
     ),
-    "chroma": ProviderOption(
+    "chroma": VectorStoreProviderOption(
         name="chroma",
+        default_eviction_policy="lru",
         description="Persistent Chroma vector store using Chroma's default distance behavior.",
     ),
 }
@@ -96,6 +107,11 @@ def default_embedding_model(provider: str) -> str:
 def default_llm_model(provider: str) -> str:
     normalized = normalize_provider_name(provider)
     return SUPPORTED_LLM_PROVIDERS[normalized].default_model
+
+
+def default_vector_store_eviction_policy(provider: str) -> str:
+    normalized = normalize_provider_name(provider)
+    return SUPPORTED_VECTOR_STORE_PROVIDERS[normalized].default_eviction_policy
 
 
 def format_supported_configs() -> str:
@@ -137,6 +153,7 @@ def format_supported_configs() -> str:
             [
                 f"  - {provider.name}",
                 f"    description: {provider.description}",
+                f"    default eviction policy: {provider.default_eviction_policy}",
                 "",
             ]
         )
@@ -162,6 +179,8 @@ def format_supported_configs() -> str:
             f"  vector-store provider: {DEFAULT_VECTOR_STORE_PROVIDER}",
             f"  similarity threshold: {DEFAULT_SIMILARITY_THRESHOLD}",
             f"  eviction policy: {DEFAULT_EVICTION_POLICY}",
+            "  resolved vector-store eviction policy: "
+            f"{default_vector_store_eviction_policy(DEFAULT_VECTOR_STORE_PROVIDER)}",
         ]
     )
 

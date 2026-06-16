@@ -13,6 +13,7 @@ from llm_cache.config.provider_options import (
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     default_embedding_model,
     default_llm_model,
+    default_vector_store_eviction_policy,
 )
 
 
@@ -48,6 +49,8 @@ def test_registry_defaults_are_valid() -> None:
     assert DEFAULT_EMBEDDING_PROVIDER in SUPPORTED_EMBEDDING_PROVIDERS
     assert DEFAULT_LLM_PROVIDER in SUPPORTED_LLM_PROVIDERS
     assert DEFAULT_VECTOR_STORE_PROVIDER in SUPPORTED_VECTOR_STORE_PROVIDERS
+    assert DEFAULT_VECTOR_STORE_PROVIDER == "chroma"
+    assert DEFAULT_EVICTION_POLICY == "default"
 
     embedding_default_model = default_embedding_model(DEFAULT_EMBEDDING_PROVIDER)
     assert (
@@ -82,7 +85,18 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.vector_store.persist_path == args.vector_store_path
     assert config.vector_store.collection_name == args.vector_store_collection
     assert config.vector_store.max_capacity == args.cache_max_capacity
-    assert config.vector_store.eviction_policy == args.eviction_policy
+    assert config.vector_store.eviction_policy == default_vector_store_eviction_policy(
+        args.vector_store_provider
+    )
+
+
+@pytest.mark.parametrize("provider", SUPPORTED_VECTOR_STORE_PROVIDERS.keys())
+def test_default_eviction_policy_resolves_by_vector_store_provider(provider: str) -> None:
+    args = parse_cli_args(["--vector-store-provider", provider])
+    config = app_config_from_args(args)
+
+    assert args.eviction_policy == DEFAULT_EVICTION_POLICY
+    assert config.vector_store.eviction_policy == default_vector_store_eviction_policy(provider)
 
 
 def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
@@ -185,3 +199,7 @@ def test_list_supported_configs_prints_registered_options(capsys) -> None:
 
     for provider in SUPPORTED_VECTOR_STORE_PROVIDERS:
         assert provider in output
+
+    assert "vector-store provider: chroma" in output
+    assert "eviction policy: default" in output
+    assert "resolved vector-store eviction policy: lru" in output

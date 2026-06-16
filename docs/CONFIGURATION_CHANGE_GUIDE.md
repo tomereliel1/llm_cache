@@ -31,6 +31,8 @@ This file owns:
 - supported LLM providers and models
 - LLM provider default models
 - supported vector-store providers
+- vector-store provider default eviction policies
+- supported eviction policies
 - global default provider choices
 - default prompt
 - default similarity threshold
@@ -165,6 +167,7 @@ uv run python .codex/skills/project-quality-checks/scripts/check_project_quality
 Required changes:
 
 - Add a provider entry to `SUPPORTED_VECTOR_STORE_PROVIDERS` in `src/llm_cache/config/provider_options.py`.
+- Set the provider's `default_eviction_policy`.
 - Add or reuse an implementation under `src/llm_cache/vector_store/` or `src/llm_cache/test_doubles/`.
 - Ensure the implementation satisfies `IVectorStore` from `src/llm_cache/vector_store/i_vector_store.py`.
 - Update `src/llm_cache/factories/vector_store_factory.py` to map the new provider name to the concrete class.
@@ -174,6 +177,7 @@ Required changes:
 Tests to add or update:
 
 - Add a factory test in `tests/test_factories.py`.
+- Add a CLI/config test if the provider has a meaningful default eviction policy.
 - Add provider-specific behavior tests if the vector store has meaningful behavior beyond construction.
 - Confirm `tests/test_cli_args.py` covers CLI choices and `--list-supported-configs`.
 
@@ -196,8 +200,10 @@ Required changes:
   - `DEFAULT_EMBEDDING_PROVIDER`
   - `DEFAULT_LLM_PROVIDER`
   - `DEFAULT_VECTOR_STORE_PROVIDER`
+  - `DEFAULT_EVICTION_POLICY`
 - Ensure the selected default provider exists in the matching supported-provider dictionary.
 - Ensure the selected default provider has a valid `default_model` if it is a model provider.
+- If `DEFAULT_EVICTION_POLICY` remains `default`, confirm the selected vector-store provider's internal default behavior is the intended runtime behavior.
 
 Usually no changes are needed in tests because defaults should be asserted through registry constants.
 

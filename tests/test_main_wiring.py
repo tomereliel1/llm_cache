@@ -22,6 +22,13 @@ def test_importing_main_does_not_import_chromadb() -> None:
     assert result.stdout.strip() == "False"
 
 
+def test_default_main_config_uses_chroma_vector_store() -> None:
+    config = app_config_from_args(parse_cli_args([]))
+
+    assert config.vector_store.provider == "chroma"
+    assert config.vector_store.eviction_policy == "lru"
+
+
 def test_build_orchestrator_uses_factories(monkeypatch) -> None:
     config = app_config_from_args(parse_cli_args([]))
     embedder = EmbedderStub()

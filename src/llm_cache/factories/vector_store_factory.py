@@ -13,7 +13,16 @@ from .eviction_policy_factory import create_eviction_policy
 
 def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
     provider = normalize_provider_name(config.provider)
-    eviction_policy = create_eviction_policy(config.eviction_policy)
+    if provider not in SUPPORTED_VECTOR_STORE_PROVIDERS:
+        raise ConfigError(
+            f"Unknown vector store provider '{config.provider}'. "
+            f"Supported vector store providers: {', '.join(SUPPORTED_VECTOR_STORE_PROVIDERS)}"
+        )
+
+    eviction_policy = create_eviction_policy(
+        config.eviction_policy,
+        vector_store_provider=provider,
+    )
 
     if provider == "vector-store-miss-stub":
         return VectorStoreMissStub(
@@ -45,7 +54,4 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
             eviction_policy=eviction_policy,
         )
 
-    raise ConfigError(
-        f"Unknown vector store provider '{config.provider}'. "
-        f"Supported vector store providers: {', '.join(SUPPORTED_VECTOR_STORE_PROVIDERS)}"
-    )
+    raise AssertionError(f"Unhandled vector store provider: {provider}")
