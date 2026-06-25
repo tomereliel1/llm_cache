@@ -850,10 +850,12 @@ dependencies = [
     { name = "grpcio" },
     { name = "grpcio-tools" },
     { name = "ollama" },
+    { name = "protobuf" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "grpcio-tools" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -865,10 +867,12 @@ requires-dist = [
     { name = "grpcio", specifier = ">=1.81.1" },
     { name = "grpcio-tools", specifier = ">=1.81.1" },
     { name = "ollama", specifier = ">=0.6.2" },
+    { name = "protobuf", specifier = ">=6.33.5" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "grpcio-tools", specifier = ">=1.81.1" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "ruff", specifier = ">=0.15.15" },
 ]
