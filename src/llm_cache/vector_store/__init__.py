@@ -3,6 +3,8 @@ from .i_eviction_policy import IEvictionPolicy
 from .i_vector_store import IVectorStore, VectorStoreResult
 from .in_memory_vector_store import InMemoryVectorStore
 from .lru_eviction_policy import LRUEvictionPolicy
+from .vector_store_grpc_client import VectorStoreGrpcClient
+from .vector_store_grpc_service import VectorStoreGrpcService
 
 __all__ = [
     "CacheEntryMetadata",
@@ -11,6 +13,8 @@ __all__ = [
     "InMemoryVectorStore",
     "IVectorStore",
     "LRUEvictionPolicy",
+    "VectorStoreGrpcClient",
+    "VectorStoreGrpcService",
     "VectorStoreResult",
 ]
 

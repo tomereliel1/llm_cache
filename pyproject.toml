@@ -6,10 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "chromadb>=1.5.9",
-    "groq>=1.4.0",
     "grpcio>=1.81.1",
+    "groq>=1.4.0",
     "grpcio-tools>=1.81.1",
     "ollama>=0.6.2",
+    "protobuf>=6.33.5",
 ]
 
 [build-system]
@@ -47,6 +48,7 @@ indent-style = "space"
 
 [dependency-groups]
 dev = [
+    "grpcio-tools>=1.81.1",
     "pytest>=8.0.0",
     "ruff>=0.15.15",
 ]
