@@ -4,7 +4,8 @@
   "python.analysis.autoImportCompletions": true,
   "python.analysis.autoSearchPaths": true,
   "python.analysis.extraPaths": [
-    "${workspaceFolder}"
+    "${workspaceFolder}",
+    "./src"
   ],
   "python.analysis.diagnosticMode": "workspace",
   "python.analysis.indexing": true,
