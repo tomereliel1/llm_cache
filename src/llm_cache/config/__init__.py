@@ -6,6 +6,7 @@ from .app_config import (
     VectorStoreConfig,
 )
 from .embedding_server_cli_args import EmbeddingServerConfig
+from .llm_server_cli_args import LLMServerConfig
 from .vector_store_server_cli_args import VectorStoreServerConfig
 
 __all__ = [
@@ -14,6 +15,7 @@ __all__ = [
     "EmbeddingConfig",
     "EmbeddingServerConfig",
     "LLMConfig",
+    "LLMServerConfig",
     "VectorStoreConfig",
     "VectorStoreServerConfig",
 ]
