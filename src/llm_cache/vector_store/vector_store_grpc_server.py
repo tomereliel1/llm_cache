@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import sys
+
+from llm_cache.config import ConfigError
 from llm_cache.config.vector_store_server_cli_args import parse_vector_store_server_args
 from llm_cache.factories.vector_store_factory import create_vector_store
 from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
@@ -7,7 +10,12 @@ from llm_cache.vector_store.vector_store_grpc_service import create_vector_store
 
 def main(argv: list[str] | None = None) -> int:
     config = parse_vector_store_server_args(argv)
-    vector_store = create_vector_store(config.vector_store)
+    try:
+        vector_store = create_vector_store(config.vector_store)
+    except ConfigError as error:
+        print(f"Configuration error: {error}", file=sys.stderr)
+        return 2
+
     server = create_vector_store_grpc_server(vector_store, max_workers=config.max_workers)
     address = f"{config.host}:{config.port}"
     bound_port = server.add_insecure_port(address)

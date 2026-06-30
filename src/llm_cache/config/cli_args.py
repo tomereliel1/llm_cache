@@ -22,7 +22,6 @@ from llm_cache.config.provider_options import (
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     default_embedding_model,
     default_llm_model,
-    default_vector_store_eviction_policy,
     format_supported_configs,
     normalize_provider_name,
 )
@@ -117,9 +116,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--eviction-policy",
         type=str,
-        choices=tuple(SUPPORTED_EVICTION_POLICIES),
         default=DEFAULT_EVICTION_POLICY,
-        help=f"Cache eviction policy. Default: {DEFAULT_EVICTION_POLICY}",
+        help=(
+            "Cache eviction policy. Supported policies: "
+            f"{', '.join(SUPPORTED_EVICTION_POLICIES)}. "
+            f"Default: {DEFAULT_EVICTION_POLICY}"
+        ),
     )
     parser.add_argument(
         "--list-supported-configs",
@@ -199,10 +201,6 @@ def _validate_args(
 
 
 def app_config_from_args(args: argparse.Namespace) -> AppConfig:
-    eviction_policy = args.eviction_policy
-    if eviction_policy == DEFAULT_EVICTION_POLICY:
-        eviction_policy = default_vector_store_eviction_policy(args.vector_store_provider)
-
     return AppConfig(
         embedding=EmbeddingConfig(
             provider=args.embedding_provider,
@@ -218,6 +216,6 @@ def app_config_from_args(args: argparse.Namespace) -> AppConfig:
             persist_path=args.vector_store_path,
             collection_name=args.vector_store_collection,
             max_capacity=args.cache_max_capacity,
-            eviction_policy=eviction_policy,
+            eviction_policy=args.eviction_policy,
         ),
     )

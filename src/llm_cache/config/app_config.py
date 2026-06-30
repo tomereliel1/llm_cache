@@ -1,10 +1,6 @@
 from dataclasses import dataclass
 
-from llm_cache.config.provider_options import (
-    DEFAULT_EVICTION_POLICY,
-    SUPPORTED_EVICTION_POLICIES,
-    normalize_provider_name,
-)
+from llm_cache.config.provider_options import DEFAULT_EVICTION_POLICY
 
 
 class ConfigError(ValueError):
@@ -49,13 +45,6 @@ class VectorStoreConfig:
 
         if self.max_capacity < 1:
             raise ConfigError(f"max_capacity must be at least 1. Got: {self.max_capacity}")
-
-        normalized_policy = normalize_provider_name(self.eviction_policy)
-        if normalized_policy not in SUPPORTED_EVICTION_POLICIES:
-            raise ConfigError(
-                f"Unknown eviction policy '{self.eviction_policy}'. "
-                f"Supported eviction policies: {', '.join(SUPPORTED_EVICTION_POLICIES)}"
-            )
 
 
 @dataclass(frozen=True)

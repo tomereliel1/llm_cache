@@ -84,9 +84,10 @@ def test_invalid_vector_store_provider_exits() -> None:
         parse_vector_store_server_args(["--vector-store-provider", "bad-provider"])
 
 
-def test_invalid_eviction_policy_exits() -> None:
-    with pytest.raises(SystemExit):
-        parse_vector_store_server_args(["--eviction-policy", "bad-policy"])
+def test_unknown_eviction_policy_is_preserved_for_factory_validation() -> None:
+    config = parse_vector_store_server_args(["--eviction-policy", " BAD-POLICY "])
+
+    assert config.vector_store.eviction_policy == "bad-policy"
 
 
 @pytest.mark.parametrize(

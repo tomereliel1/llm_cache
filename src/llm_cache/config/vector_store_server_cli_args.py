@@ -9,7 +9,6 @@ from llm_cache.config.provider_options import (
     DEFAULT_EVICTION_POLICY,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
-    SUPPORTED_EVICTION_POLICIES,
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     normalize_provider_name,
 )
@@ -99,7 +98,6 @@ def parse_vector_store_server_args(
 
     _validate_vector_store_server_runtime_args(parser, args)
     _validate_vector_store_provider(parser, args.vector_store_provider)
-    _validate_eviction_policy(parser, args.eviction_policy)
 
     return VectorStoreServerConfig(
         host=args.host,
@@ -141,15 +139,4 @@ def _validate_vector_store_provider(
         parser.error(
             f"Unknown vector-store provider {vector_store_provider!r}. "
             f"Supported vector-store providers: {', '.join(SUPPORTED_VECTOR_STORE_PROVIDERS)}"
-        )
-
-
-def _validate_eviction_policy(
-    parser: argparse.ArgumentParser,
-    eviction_policy: str,
-) -> None:
-    if eviction_policy not in SUPPORTED_EVICTION_POLICIES:
-        parser.error(
-            f"Unknown eviction policy {eviction_policy!r}. "
-            f"Supported eviction policies: {', '.join(SUPPORTED_EVICTION_POLICIES)}"
         )

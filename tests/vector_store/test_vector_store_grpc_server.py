@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from llm_cache.config import VectorStoreConfig, VectorStoreServerConfig
 from llm_cache.vector_store import InMemoryVectorStore, vector_store_grpc_server
 
@@ -64,3 +66,29 @@ def test_main_uses_parsed_config_to_start_server(monkeypatch) -> None:
     assert server.bound_address == "127.0.0.1:60000"
     assert server.started is True
     assert server.waited is True
+
+
+def test_main_prints_clean_configuration_error(
+    monkeypatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    config = VectorStoreServerConfig(
+        host="127.0.0.1",
+        port=50052,
+        max_workers=1,
+        vector_store=VectorStoreConfig(
+            provider="vector-store-hit-stub",
+            eviction_policy="lru",
+        ),
+    )
+    monkeypatch.setattr(
+        vector_store_grpc_server,
+        "parse_vector_store_server_args",
+        lambda argv: config,
+    )
+
+    assert vector_store_grpc_server.main(["ignored"]) == 2
+    assert capsys.readouterr().err == (
+        "Configuration error: Eviction policy 'lru' is not supported by vector store "
+        "provider 'vector-store-hit-stub'. Supported eviction policies: default\n"
+    )

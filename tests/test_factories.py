@@ -175,15 +175,9 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
 
 
 def test_create_eviction_policy_returns_lru_policy() -> None:
-    policy = create_eviction_policy("lru")
+    policy = create_eviction_policy("lru", vector_store_provider="chroma")
 
     assert isinstance(policy, LRUEvictionPolicy)
-
-
-def test_create_eviction_policy_returns_none_for_default_policy() -> None:
-    policy = create_eviction_policy("default")
-
-    assert policy is None
 
 
 def test_create_eviction_policy_resolves_chroma_default_to_lru_policy() -> None:
@@ -199,14 +193,45 @@ def test_create_eviction_policy_resolves_stub_default_to_none() -> None:
 
 
 def test_create_eviction_policy_normalizes_policy_name() -> None:
-    policy = create_eviction_policy(" LRU ")
+    policy = create_eviction_policy(" LRU ", vector_store_provider=" Chroma ")
 
     assert isinstance(policy, LRUEvictionPolicy)
 
 
 def test_create_eviction_policy_rejects_unknown_policy() -> None:
     with pytest.raises(ConfigError, match="Unknown eviction policy 'unknown'.*lru"):
-        create_eviction_policy("unknown")
+        create_eviction_policy("unknown", vector_store_provider="chroma")
+
+
+def test_create_eviction_policy_rejects_policy_unsupported_by_provider() -> None:
+    with pytest.raises(
+        ConfigError,
+        match=(
+            "Eviction policy 'lru' is not supported by vector store provider "
+            "'vector-store-miss-stub'.*default"
+        ),
+    ):
+        create_eviction_policy("lru", vector_store_provider="vector-store-miss-stub")
+
+
+def test_create_vector_store_rejects_unknown_eviction_policy() -> None:
+    config = VectorStoreConfig(provider="chroma", eviction_policy="fifo")
+
+    with pytest.raises(ConfigError, match="Unknown eviction policy 'fifo'.*default, lru"):
+        create_vector_store(config)
+
+
+def test_create_vector_store_rejects_policy_unsupported_by_provider() -> None:
+    config = VectorStoreConfig(provider="vector-store-hit-stub", eviction_policy="lru")
+
+    with pytest.raises(
+        ConfigError,
+        match=(
+            "Eviction policy 'lru' is not supported by vector store provider "
+            "'vector-store-hit-stub'.*default"
+        ),
+    ):
+        create_vector_store(config)
 
 
 def test_create_vector_store_normalizes_provider_name() -> None:

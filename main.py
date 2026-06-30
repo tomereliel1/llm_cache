@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from llm_cache.config import AppConfig
+import sys
+
+from llm_cache.config import AppConfig, ConfigError
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.factories import create_embedder, create_llm_provider, create_vector_store
 from llm_cache.health import HealthCheckable, run_setup_check_and_exit
@@ -45,8 +47,12 @@ def print_result(prompt: str, result: QueryResult) -> None:
 
 def main() -> None:
     args = parse_cli_args()
-    config = app_config_from_args(args)
-    embedder, llm_provider, vector_store = build_providers(config)
+    try:
+        config = app_config_from_args(args)
+        embedder, llm_provider, vector_store = build_providers(config)
+    except ConfigError as error:
+        print(f"Configuration error: {error}", file=sys.stderr)
+        raise SystemExit(2) from None
 
     if args.check_setup:
         run_setup_check_and_exit([embedder, llm_provider, vector_store])

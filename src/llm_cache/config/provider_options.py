@@ -21,6 +21,7 @@ class ProviderOption:
 class VectorStoreProviderOption:
     name: str
     default_eviction_policy: str
+    supported_eviction_policies: tuple[str, ...]
     description: str
 
 
@@ -75,21 +76,25 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, VectorStoreProviderOption] = {
     "vector-store-miss-stub": VectorStoreProviderOption(
         name="vector-store-miss-stub",
         default_eviction_policy="default",
+        supported_eviction_policies=("default",),
         description="Test double vector store that always returns a cache miss.",
     ),
     "vector-store-hit-stub": VectorStoreProviderOption(
         name="vector-store-hit-stub",
         default_eviction_policy="default",
+        supported_eviction_policies=("default",),
         description="Test double vector store that always returns a cache hit.",
     ),
     "in-memory": VectorStoreProviderOption(
         name="in-memory",
         default_eviction_policy="lru",
+        supported_eviction_policies=("default", "lru"),
         description="Local in-memory vector store using cosine similarity.",
     ),
     "chroma": VectorStoreProviderOption(
         name="chroma",
         default_eviction_policy="lru",
+        supported_eviction_policies=("default", "lru"),
         description="Persistent Chroma vector store using Chroma's default distance behavior.",
     ),
 }
@@ -154,6 +159,8 @@ def format_supported_configs() -> str:
                 f"  - {provider.name}",
                 f"    description: {provider.description}",
                 f"    default eviction policy: {provider.default_eviction_policy}",
+                "    supported eviction policies: "
+                f"{', '.join(provider.supported_eviction_policies)}",
                 "",
             ]
         )

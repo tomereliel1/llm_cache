@@ -1,6 +1,8 @@
 import subprocess
 import sys
 
+import pytest
+
 import main
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.orchestrator import CacheOrchestrator, QueryResult
@@ -26,7 +28,33 @@ def test_default_main_config_uses_chroma_vector_store() -> None:
     config = app_config_from_args(parse_cli_args([]))
 
     assert config.vector_store.provider == "chroma"
-    assert config.vector_store.eviction_policy == "lru"
+    assert config.vector_store.eviction_policy == "default"
+
+
+def test_main_prints_clean_configuration_error_for_invalid_eviction_policy(
+    monkeypatch,
+    capsys,
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "main.py",
+            "--vector-store-provider",
+            "vector-store-miss-stub",
+            "--eviction-policy",
+            "lru",
+        ],
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        main.main()
+
+    assert exc_info.value.code == 2
+    assert capsys.readouterr().err == (
+        "Configuration error: Eviction policy 'lru' is not supported by vector store "
+        "provider 'vector-store-miss-stub'. Supported eviction policies: default\n"
+    )
 
 
 def test_build_orchestrator_uses_factories(monkeypatch) -> None:

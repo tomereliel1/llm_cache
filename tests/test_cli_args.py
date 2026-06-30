@@ -13,7 +13,6 @@ from llm_cache.config.provider_options import (
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     default_embedding_model,
     default_llm_model,
-    default_vector_store_eviction_policy,
 )
 
 
@@ -61,6 +60,10 @@ def test_registry_defaults_are_valid() -> None:
     llm_default_model = default_llm_model(DEFAULT_LLM_PROVIDER)
     assert llm_default_model in SUPPORTED_LLM_PROVIDERS[DEFAULT_LLM_PROVIDER].supported_models
 
+    for provider in SUPPORTED_VECTOR_STORE_PROVIDERS.values():
+        assert provider.default_eviction_policy in provider.supported_eviction_policies
+        assert set(provider.supported_eviction_policies) <= set(SUPPORTED_EVICTION_POLICIES)
+
 
 def test_explicit_llm_model_override_works() -> None:
     provider = DEFAULT_LLM_PROVIDER
@@ -85,18 +88,16 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.vector_store.persist_path == args.vector_store_path
     assert config.vector_store.collection_name == args.vector_store_collection
     assert config.vector_store.max_capacity == args.cache_max_capacity
-    assert config.vector_store.eviction_policy == default_vector_store_eviction_policy(
-        args.vector_store_provider
-    )
+    assert config.vector_store.eviction_policy == args.eviction_policy
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_VECTOR_STORE_PROVIDERS.keys())
-def test_default_eviction_policy_resolves_by_vector_store_provider(provider: str) -> None:
+def test_default_eviction_policy_remains_unresolved_in_config(provider: str) -> None:
     args = parse_cli_args(["--vector-store-provider", provider])
     config = app_config_from_args(args)
 
     assert args.eviction_policy == DEFAULT_EVICTION_POLICY
-    assert config.vector_store.eviction_policy == default_vector_store_eviction_policy(provider)
+    assert config.vector_store.eviction_policy == DEFAULT_EVICTION_POLICY
 
 
 def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
@@ -162,9 +163,10 @@ def test_invalid_llm_provider_exits() -> None:
         parse_cli_args(["--llm-provider", "bad-provider"])
 
 
-def test_invalid_eviction_policy_exits() -> None:
-    with pytest.raises(SystemExit):
-        parse_cli_args(["--eviction-policy", "bad-policy"])
+def test_cli_parser_preserves_unknown_eviction_policy_for_factory_validation() -> None:
+    args = parse_cli_args(["--eviction-policy", " BAD-POLICY "])
+
+    assert args.eviction_policy == "bad-policy"
 
 
 def test_invalid_llm_model_for_provider_exits() -> None:
