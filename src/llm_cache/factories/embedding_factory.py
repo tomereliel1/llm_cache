@@ -4,11 +4,15 @@ from llm_cache.config.provider_options import (
     normalize_provider_name,
 )
 from llm_cache.embedding.i_embedder import IEmbedder
-from llm_cache.embedding.ollama_embedder import OllamaEmbedder
 
 
 def create_embedder(config: EmbeddingConfig) -> IEmbedder:
     provider = normalize_provider_name(config.provider)
+
+    if provider == "embedder-stub":
+        from llm_cache.test_doubles.embedder_stub import EmbedderStub
+
+        return EmbedderStub()
 
     if provider == "ollama":
         if not config.model:
@@ -16,6 +20,8 @@ def create_embedder(config: EmbeddingConfig) -> IEmbedder:
                 "Missing model for Ollama embedding provider. "
                 "Example: EmbeddingConfig(provider='ollama', model='embeddinggemma')"
             )
+
+        from llm_cache.embedding.ollama_embedder import OllamaEmbedder
 
         return OllamaEmbedder(model_name=config.model)
 

@@ -1,102 +1,89 @@
 import subprocess
 import sys
 
-import pytest
 
-import main
-from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
-from llm_cache.orchestrator import CacheOrchestrator, QueryResult
-from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy, VectorStoreMissStub
-
-
-def test_importing_main_does_not_import_chromadb() -> None:
+def test_importing_main_does_not_import_provider_implementations() -> None:
     result = subprocess.run(
         [
             sys.executable,
             "-c",
-            "import sys; import main; print('chromadb' in sys.modules)",
+            "import sys; import main; print('chromadb' in sys.modules, 'ollama' in sys.modules)",
         ],
         check=True,
         capture_output=True,
         text=True,
     )
 
-    assert result.stdout.strip() == "False"
+    assert result.stdout.strip() == "False False"
 
 
-def test_default_main_config_uses_chroma_vector_store() -> None:
-    config = app_config_from_args(parse_cli_args([]))
-
-    assert config.vector_store.provider == "chroma"
-    assert config.vector_store.eviction_policy == "default"
-
-
-def test_main_prints_clean_configuration_error_for_invalid_eviction_policy(
-    monkeypatch,
-    capsys,
-) -> None:
-    monkeypatch.setattr(
-        sys,
-        "argv",
+def test_importing_cli_main_does_not_import_provider_implementations() -> None:
+    result = subprocess.run(
         [
-            "main.py",
-            "--vector-store-provider",
-            "vector-store-miss-stub",
-            "--eviction-policy",
-            "lru",
+            sys.executable,
+            "-c",
+            (
+                "import sys; import llm_cache.cli.main; "
+                "print('chromadb' in sys.modules, 'ollama' in sys.modules)"
+            ),
         ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
-    with pytest.raises(SystemExit) as exc_info:
-        main.main()
+    assert result.stdout.strip() == "False False"
 
-    assert exc_info.value.code == 2
-    assert capsys.readouterr().err == (
-        "Configuration error: Eviction policy 'lru' is not supported by vector store "
-        "provider 'vector-store-miss-stub'. Supported eviction policies: default\n"
+
+def test_importing_orchestrator_server_does_not_import_provider_implementations() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import llm_cache.orchestrator.orchestrator_server; "
+                "print('chromadb' in sys.modules, 'ollama' in sys.modules)"
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
-
-def test_build_orchestrator_uses_factories(monkeypatch) -> None:
-    config = app_config_from_args(parse_cli_args([]))
-    embedder = EmbedderStub()
-    llm_provider = LLMProviderSpy()
-    vector_store = VectorStoreMissStub()
-    factory_calls = []
-
-    def create_embedder(config):
-        factory_calls.append(("embedding", config))
-        return embedder
-
-    def create_llm_provider(config):
-        factory_calls.append(("llm", config))
-        return llm_provider
-
-    def create_vector_store(config):
-        factory_calls.append(("vector_store", config))
-        return vector_store
-
-    monkeypatch.setattr(main, "create_embedder", create_embedder)
-    monkeypatch.setattr(main, "create_llm_provider", create_llm_provider)
-    monkeypatch.setattr(main, "create_vector_store", create_vector_store)
-
-    orchestrator = main.build_orchestrator(config)
-
-    assert isinstance(orchestrator, CacheOrchestrator)
-    assert factory_calls == [
-        ("embedding", config.embedding),
-        ("llm", config.llm),
-        ("vector_store", config.vector_store),
-    ]
+    assert result.stdout.strip() == "False False"
 
 
-def test_run_query_returns_query_result() -> None:
-    orchestrator = CacheOrchestrator(
-        embedder=EmbedderStub(),
-        llm_provider=LLMProviderSpy(),
-        vector_store=VectorStoreMissStub(),
+def test_orchestrator_with_test_doubles_does_not_import_optional_providers() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "from llm_cache.orchestrator import CacheOrchestrator; "
+                "from llm_cache.test_doubles import "
+                "EmbedderStub, LLMProviderSpy, VectorStoreMissStub; "
+                "orchestrator = CacheOrchestrator("
+                "EmbedderStub(), LLMProviderSpy(), VectorStoreMissStub()); "
+                "orchestrator.query('hello'); "
+                "print('chromadb' in sys.modules, 'ollama' in sys.modules)"
+            ),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     )
 
-    result = main.run_query(orchestrator, "What is semantic caching?")
+    assert result.stdout.strip() == "False False"
 
-    assert result == QueryResult(response="generated answer", cache_hit=False)
+
+def test_main_help_describes_orchestrator_cli() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py", "--help"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "orchestrator gRPC server" in result.stdout
+    assert "--target" in result.stdout

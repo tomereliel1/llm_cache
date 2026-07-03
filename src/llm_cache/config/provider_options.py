@@ -47,6 +47,12 @@ SUPPORTED_EVICTION_POLICIES: dict[str, ProviderOption] = {
 
 
 SUPPORTED_EMBEDDING_PROVIDERS: dict[str, ModelProviderOption] = {
+    "embedder-stub": ModelProviderOption(
+        name="embedder-stub",
+        default_model="fixed-vector",
+        supported_models=("fixed-vector",),
+        description="Test double embedder that returns a fixed vector.",
+    ),
     "ollama": ModelProviderOption(
         name="ollama",
         default_model="embeddinggemma",
@@ -57,6 +63,12 @@ SUPPORTED_EMBEDDING_PROVIDERS: dict[str, ModelProviderOption] = {
 
 
 SUPPORTED_LLM_PROVIDERS: dict[str, ModelProviderOption] = {
+    "llm-provider-spy": ModelProviderOption(
+        name="llm-provider-spy",
+        default_model="fixed-answer",
+        supported_models=("fixed-answer",),
+        description="Test double LLM provider that returns a fixed answer.",
+    ),
     "ollama": ModelProviderOption(
         name="ollama",
         default_model="gemma3:4b",

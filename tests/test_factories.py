@@ -15,7 +15,12 @@ from llm_cache.factories import (
     create_vector_store,
 )
 from llm_cache.llm import GroqLLMProvider, OllamaLLMProvider
-from llm_cache.test_doubles import VectorStoreHitStub, VectorStoreMissStub
+from llm_cache.test_doubles import (
+    EmbedderStub,
+    LLMProviderSpy,
+    VectorStoreHitStub,
+    VectorStoreMissStub,
+)
 from llm_cache.vector_store import InMemoryVectorStore, LRUEvictionPolicy
 
 
@@ -53,6 +58,12 @@ def test_create_embedder_returns_ollama_embedder_for_ollama() -> None:
     assert isinstance(embedder, OllamaEmbedder)
 
 
+def test_create_embedder_returns_embedder_stub() -> None:
+    embedder = create_embedder(EmbeddingConfig(provider="embedder-stub"))
+
+    assert isinstance(embedder, EmbedderStub)
+
+
 def test_create_embedder_normalizes_provider_name() -> None:
     embedder = create_embedder(EmbeddingConfig(provider=" Ollama ", model="embeddinggemma"))
 
@@ -73,6 +84,12 @@ def test_create_llm_provider_returns_ollama_llm_provider_for_ollama() -> None:
     llm_provider = create_llm_provider(LLMConfig(provider="ollama", model="gemma3:4b"))
 
     assert isinstance(llm_provider, OllamaLLMProvider)
+
+
+def test_create_llm_provider_returns_llm_provider_spy() -> None:
+    llm_provider = create_llm_provider(LLMConfig(provider="llm-provider-spy"))
+
+    assert isinstance(llm_provider, LLMProviderSpy)
 
 
 def test_create_llm_provider_rejects_missing_ollama_model() -> None:

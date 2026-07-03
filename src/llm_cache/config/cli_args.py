@@ -27,30 +27,37 @@ from llm_cache.config.provider_options import (
 )
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Run the local LLM semantic cache demo.",
-        epilog=(
+def build_parser(
+    *,
+    include_prompt: bool = True,
+    description: str = "Run the local LLM semantic cache demo.",
+    epilog: str | None = None,
+) -> argparse.ArgumentParser:
+    if epilog is None and include_prompt:
+        epilog = (
             "Example:\n"
-            "  uv run python main.py "
+            "  uv run python -m llm_cache.demos.local_one_prompt_demo "
             '--prompt "What is the capital of Israel?" '
             "--embedding-provider ollama "
             "--embedding-model embeddinggemma "
             "--llm-provider ollama "
             "--vector-store-provider chroma "
             "--similarity-threshold 0.85\n\n"
-            "For provider/model details, run:\n"
-            "  uv run python main.py --list-supported-configs"
-        ),
+            "For provider/model details, add --list-supported-configs."
+        )
+    parser = argparse.ArgumentParser(
+        description=description,
+        epilog=epilog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
-    parser.add_argument(
-        "--prompt",
-        type=str,
-        default=DEFAULT_PROMPT,
-        help=f"Prompt to send to the cache system. Default: {DEFAULT_PROMPT!r}",
-    )
+    if include_prompt:
+        parser.add_argument(
+            "--prompt",
+            type=str,
+            default=DEFAULT_PROMPT,
+            help=f"Prompt to send to the cache system. Default: {DEFAULT_PROMPT!r}",
+        )
     parser.add_argument(
         "--embedding-provider",
         type=str,
@@ -137,8 +144,11 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_cli_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
-    parser = build_parser()
+def parse_cli_args(
+    argv: Sequence[str] | None = None,
+    parser: argparse.ArgumentParser | None = None,
+) -> argparse.Namespace:
+    parser = parser or build_parser()
     args = parser.parse_args(argv)
 
     if args.list_supported_configs:
@@ -168,7 +178,7 @@ def _validate_args(
     parser: argparse.ArgumentParser,
     args: argparse.Namespace,
 ) -> None:
-    if not args.prompt.strip():
+    if hasattr(args, "prompt") and not args.prompt.strip():
         parser.error("--prompt must not be empty")
 
     if not 0 <= args.similarity_threshold <= 1:

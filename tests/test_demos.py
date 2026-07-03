@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 import grpc
 
+from llm_cache.config import AppConfig, EmbeddingConfig, LLMConfig, VectorStoreConfig
 from llm_cache.demos.grpc_providers_orchestrator_demo import (
     run_demo as run_grpc_providers_demo,
 )
@@ -11,7 +12,7 @@ from llm_cache.demos.grpc_vector_store_orchestrator_demo import (
     local_vector_store_target,
     run_demo,
 )
-from llm_cache.demos.monolit_run import build_stub_demo_config
+from llm_cache.demos.local_one_prompt_demo import build_orchestrator
 from llm_cache.embedding import embedding_pb2_grpc
 from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
 from llm_cache.llm import llm_pb2_grpc
@@ -59,11 +60,14 @@ def local_provider_targets() -> Iterator[tuple[str, str, str]]:
         llm_server.stop(grace=0)
 
 
-def test_monolit_run_demo_uses_stub_vector_store() -> None:
-    config = build_stub_demo_config()
+def test_local_one_prompt_demo_builds_orchestrator() -> None:
+    config = AppConfig(
+        embedding=EmbeddingConfig("embedder-stub"),
+        llm=LLMConfig("llm-provider-spy"),
+        vector_store=VectorStoreConfig("vector-store-miss-stub"),
+    )
 
-    assert config.vector_store.provider == "vector-store-miss-stub"
-    assert config.llm.provider == "ollama"
+    assert build_orchestrator(config).query("hello").cache_hit is False
 
 
 def test_grpc_vector_store_orchestrator_demo_uses_cache() -> None:
