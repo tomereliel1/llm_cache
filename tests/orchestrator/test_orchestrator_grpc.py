@@ -4,24 +4,23 @@ from contextlib import ExitStack
 import grpc
 import pytest
 
-from llm_cache.embedding import embedding_pb2_grpc
-from llm_cache.embedding.embedding_grpc_client import EmbeddingGrpcClient
-from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
-from llm_cache.llm import llm_pb2_grpc
-from llm_cache.llm.llm_grpc_client import LLMGrpcClient
-from llm_cache.llm.llm_grpc_service import LLMGrpcService
+from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
+from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
+from llm_cache.embedding.grpc.service import EmbeddingGrpcService
+from llm_cache.llm.grpc.client import LLMGrpcClient
+from llm_cache.llm.grpc.generated import llm_pb2_grpc
+from llm_cache.llm.grpc.service import LLMGrpcService
 from llm_cache.orchestrator import (
     CacheOrchestrator,
     OrchestratorGrpcClient,
-    orchestrator_pb2,
-    orchestrator_pb2_grpc,
 )
-from llm_cache.orchestrator.orchestrator_grpc_service import OrchestratorGrpcService
-from llm_cache.orchestrator.orchestrator_server import create_orchestrator_server
+from llm_cache.orchestrator.grpc.generated import orchestrator_pb2, orchestrator_pb2_grpc
+from llm_cache.orchestrator.grpc.server import create_orchestrator_server
+from llm_cache.orchestrator.grpc.service import OrchestratorGrpcService
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy
 from llm_cache.vector_store import InMemoryVectorStore
-from llm_cache.vector_store.vector_store_grpc_client import VectorStoreGrpcClient
-from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
+from llm_cache.vector_store.grpc.client import VectorStoreGrpcClient
+from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
 
 class RecordingOrchestrator:

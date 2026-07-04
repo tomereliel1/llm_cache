@@ -3,7 +3,8 @@ from __future__ import annotations
 import pytest
 
 from llm_cache.config import VectorStoreConfig, VectorStoreServerConfig
-from llm_cache.vector_store import InMemoryVectorStore, vector_store_server
+from llm_cache.vector_store import InMemoryVectorStore
+from llm_cache.vector_store.grpc import server as vector_store_server
 
 
 class ServerSpy:

@@ -150,7 +150,7 @@ def test_create_vector_store_returns_in_memory_vector_store() -> None:
 
 
 def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
-    from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
+    from llm_cache.vector_store.implementations.chroma import ChromaVectorStore
 
     vector_store = create_vector_store(
         VectorStoreConfig(provider="chroma", persist_path=str(tmp_path))
@@ -170,7 +170,7 @@ def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
 
 
 def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
-    from llm_cache.vector_store.chroma_vector_store import ChromaVectorStore
+    from llm_cache.vector_store.implementations.chroma import ChromaVectorStore
 
     vector_store = create_vector_store(
         VectorStoreConfig(

@@ -7,9 +7,10 @@ from contextlib import contextmanager
 import grpc
 import pytest
 
-from llm_cache.llm import ILLMProvider, llm_pb2_grpc
-from llm_cache.llm.llm_grpc_client import LLMGrpcClient
-from llm_cache.llm.llm_grpc_service import LLMGrpcService
+from llm_cache.llm import ILLMProvider
+from llm_cache.llm.grpc.client import LLMGrpcClient
+from llm_cache.llm.grpc.generated import llm_pb2_grpc
+from llm_cache.llm.grpc.service import LLMGrpcService
 
 
 class RecordingStub:

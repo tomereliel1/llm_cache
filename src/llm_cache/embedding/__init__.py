@@ -1,6 +1,6 @@
-from .embedding_grpc_client import EmbeddingGrpcClient
-from .embedding_grpc_service import EmbeddingGrpcService
-from .i_embedder import IEmbedder
+from .grpc.client import EmbeddingGrpcClient
+from .grpc.service import EmbeddingGrpcService
+from .interface import IEmbedder
 
 __all__ = [
     "EmbeddingGrpcClient",
@@ -12,7 +12,7 @@ __all__ = [
 
 def __getattr__(name: str):
     if name == "OllamaEmbedder":
-        from .ollama_embedder import OllamaEmbedder
+        from .providers.ollama import OllamaEmbedder
 
         return OllamaEmbedder
 

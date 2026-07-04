@@ -6,9 +6,9 @@ from concurrent import futures
 import grpc
 import pytest
 
-from llm_cache.embedding import embedding_pb2_grpc
-from llm_cache.embedding.embedding_grpc_client import EmbeddingGrpcClient
-from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
+from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
+from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
+from llm_cache.embedding.grpc.service import EmbeddingGrpcService
 from llm_cache.orchestrator import CacheOrchestrator
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy, VectorStoreMissStub
 

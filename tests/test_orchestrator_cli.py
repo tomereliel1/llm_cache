@@ -1,6 +1,7 @@
 from llm_cache.cli.main import parse_args, run_prompt_loop
-from llm_cache.orchestrator import QueryResult, orchestrator_server
-from llm_cache.orchestrator.orchestrator_server import (
+from llm_cache.orchestrator import QueryResult
+from llm_cache.orchestrator.grpc import server as orchestrator_server
+from llm_cache.orchestrator.grpc.server import (
     check_provider_targets,
     parse_orchestrator_server_args,
 )

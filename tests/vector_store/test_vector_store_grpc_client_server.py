@@ -5,7 +5,7 @@ from collections.abc import Iterator
 import pytest
 
 from llm_cache.vector_store import InMemoryVectorStore, VectorStoreGrpcClient
-from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
+from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
 
 @pytest.fixture

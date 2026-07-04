@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from llm_cache.config import EmbeddingConfig, EmbeddingServerConfig
-from llm_cache.embedding import embedding_server
+from llm_cache.embedding.grpc import server as embedding_server
 from llm_cache.health import HealthCheckResult
 from llm_cache.test_doubles import EmbedderStub
 

@@ -3,7 +3,7 @@ from llm_cache.config.provider_options import (
     SUPPORTED_EMBEDDING_PROVIDERS,
     normalize_provider_name,
 )
-from llm_cache.embedding.i_embedder import IEmbedder
+from llm_cache.embedding.interface import IEmbedder
 
 
 def create_embedder(config: EmbeddingConfig) -> IEmbedder:
@@ -21,7 +21,7 @@ def create_embedder(config: EmbeddingConfig) -> IEmbedder:
                 "Example: EmbeddingConfig(provider='ollama', model='embeddinggemma')"
             )
 
-        from llm_cache.embedding.ollama_embedder import OllamaEmbedder
+        from llm_cache.embedding.providers.ollama import OllamaEmbedder
 
         return OllamaEmbedder(model_name=config.model)
 

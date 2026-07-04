@@ -36,7 +36,7 @@ def build_parser(
     if epilog is None and include_prompt:
         epilog = (
             "Example:\n"
-            "  uv run python -m llm_cache.demos.local_one_prompt_demo "
+            "  uv run python -m demos.local_one_prompt_demo "
             '--prompt "What is the capital of Israel?" '
             "--embedding-provider ollama "
             "--embedding-model embeddinggemma "

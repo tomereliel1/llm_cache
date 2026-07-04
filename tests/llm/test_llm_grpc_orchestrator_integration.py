@@ -6,12 +6,12 @@ from contextlib import contextmanager
 
 import grpc
 
-from llm_cache.embedding import embedding_pb2_grpc
-from llm_cache.embedding.embedding_grpc_client import EmbeddingGrpcClient
-from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
-from llm_cache.llm import llm_pb2_grpc
-from llm_cache.llm.llm_grpc_client import LLMGrpcClient
-from llm_cache.llm.llm_grpc_service import LLMGrpcService
+from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
+from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
+from llm_cache.embedding.grpc.service import EmbeddingGrpcService
+from llm_cache.llm.grpc.client import LLMGrpcClient
+from llm_cache.llm.grpc.generated import llm_pb2_grpc
+from llm_cache.llm.grpc.service import LLMGrpcService
 from llm_cache.orchestrator import CacheOrchestrator
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy, VectorStoreMissStub
 

@@ -5,7 +5,7 @@ from llm_cache.config.provider_options import (
     SUPPORTED_LLM_PROVIDERS,
     normalize_provider_name,
 )
-from llm_cache.llm.i_llm_provider import ILLMProvider
+from llm_cache.llm.interface import ILLMProvider
 
 
 def create_llm_provider(config: LLMConfig) -> ILLMProvider:
@@ -23,7 +23,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
                 "Example: LLMConfig(provider='ollama', model='gemma3:4b')"
             )
 
-        from llm_cache.llm.ollama_llm_provider import OllamaLLMProvider
+        from llm_cache.llm.providers.ollama import OllamaLLMProvider
 
         return OllamaLLMProvider(model_name=config.model)
 
@@ -42,7 +42,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
                 f"by running: export {api_key_env}='your_api_key'"
             )
 
-        from llm_cache.llm.groq_llm_provider import GroqLLMProvider
+        from llm_cache.llm.providers.groq import GroqLLMProvider
 
         return GroqLLMProvider(
             model_name=config.model,

@@ -1,4 +1,4 @@
-from .cache_orchestrator import CacheOrchestrator, QueryResult
-from .orchestrator_grpc_client import OrchestratorGrpcClient
+from .grpc.client import OrchestratorGrpcClient
+from .orchestrator import CacheOrchestrator, QueryResult
 
 __all__ = ["CacheOrchestrator", "OrchestratorGrpcClient", "QueryResult"]

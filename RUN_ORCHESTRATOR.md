@@ -3,7 +3,7 @@
 The root `main.py` is the interactive client. It calls the orchestrator through gRPC,
 and the orchestrator calls the embedding, vector-store, and LLM services through gRPC.
 The original local one-process application remains available as
-`llm_cache.demos.local_one_prompt_demo`.
+`demos.local_one_prompt_demo`.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ ollama serve
 ### Terminal 2 — embedding gRPC server
 
 ```bash
-uv run python -m llm_cache.embedding.embedding_server \
+uv run python -m llm_cache.embedding.grpc.server \
   --host localhost --port 50051 \
   --embedding-provider ollama --embedding-model embeddinggemma
 ```
@@ -39,7 +39,7 @@ uv run python -m llm_cache.embedding.embedding_server \
 For a cache that lasts until this process exits:
 
 ```bash
-uv run python -m llm_cache.vector_store.vector_store_server \
+uv run python -m llm_cache.vector_store.grpc.server \
   --host localhost --port 50052 \
   --vector-store-provider in-memory \
   --similarity-threshold 0.8 --cache-max-capacity 1000
@@ -51,7 +51,7 @@ Use `--vector-store-provider chroma` for persistent storage. Its default locatio
 ### Terminal 4 — LLM gRPC server
 
 ```bash
-uv run python -m llm_cache.llm.llm_server \
+uv run python -m llm_cache.llm.grpc.server \
   --host localhost --port 50053 \
   --llm-provider ollama --llm-model gemma3:4b
 ```
@@ -59,7 +59,7 @@ uv run python -m llm_cache.llm.llm_server \
 ### Terminal 5 — orchestrator gRPC server
 
 ```bash
-uv run python -m llm_cache.orchestrator.orchestrator_server \
+uv run python -m llm_cache.orchestrator.grpc.server \
   --host localhost --port 50050 \
   --embedding-target localhost:50051 \
   --vector-store-target localhost:50052 \

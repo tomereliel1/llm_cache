@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from llm_cache.config import LLMConfig, LLMServerConfig
 from llm_cache.health import HealthCheckResult
-from llm_cache.llm import llm_server
+from llm_cache.llm.grpc import server as llm_server
 from llm_cache.test_doubles import LLMProviderSpy
 
 

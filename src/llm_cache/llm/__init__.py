@@ -1,6 +1,6 @@
-from .i_llm_provider import ILLMProvider
-from .llm_grpc_client import LLMGrpcClient
-from .llm_grpc_service import LLMGrpcService
+from .grpc.client import LLMGrpcClient
+from .grpc.service import LLMGrpcService
+from .interface import ILLMProvider
 
 __all__ = [
     "GroqLLMProvider",
@@ -13,11 +13,11 @@ __all__ = [
 
 def __getattr__(name: str):
     if name == "GroqLLMProvider":
-        from .groq_llm_provider import GroqLLMProvider
+        from .providers.groq import GroqLLMProvider
 
         return GroqLLMProvider
     if name == "OllamaLLMProvider":
-        from .ollama_llm_provider import OllamaLLMProvider
+        from .providers.ollama import OllamaLLMProvider
 
         return OllamaLLMProvider
 

@@ -4,22 +4,22 @@ from contextlib import contextmanager
 
 import grpc
 
-from llm_cache.config import AppConfig, EmbeddingConfig, LLMConfig, VectorStoreConfig
-from llm_cache.demos.grpc_providers_orchestrator_demo import (
+from demos.grpc_providers_orchestrator_demo import (
     run_demo as run_grpc_providers_demo,
 )
-from llm_cache.demos.grpc_vector_store_orchestrator_demo import (
+from demos.grpc_vector_store_orchestrator_demo import (
     local_vector_store_target,
     run_demo,
 )
-from llm_cache.demos.local_one_prompt_demo import build_orchestrator
-from llm_cache.embedding import embedding_pb2_grpc
-from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
-from llm_cache.llm import llm_pb2_grpc
-from llm_cache.llm.llm_grpc_service import LLMGrpcService
+from demos.local_one_prompt_demo import build_orchestrator
+from llm_cache.config import AppConfig, EmbeddingConfig, LLMConfig, VectorStoreConfig
+from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
+from llm_cache.embedding.grpc.service import EmbeddingGrpcService
+from llm_cache.llm.grpc.generated import llm_pb2_grpc
+from llm_cache.llm.grpc.service import LLMGrpcService
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy
 from llm_cache.vector_store import InMemoryVectorStore
-from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
+from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
 
 @contextmanager

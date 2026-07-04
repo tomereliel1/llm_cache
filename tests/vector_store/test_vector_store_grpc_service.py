@@ -1,10 +1,13 @@
 import grpc
 import pytest
 
-from llm_cache.vector_store.in_memory_vector_store import InMemoryVectorStore
-from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
-from llm_cache.vector_store.vector_store_pb2 import SearchSimilarRequest, StoreRequest
-from llm_cache.vector_store.vector_store_pb2_grpc import VectorStoreServiceStub
+from llm_cache.vector_store.grpc.generated.vector_store_pb2 import (
+    SearchSimilarRequest,
+    StoreRequest,
+)
+from llm_cache.vector_store.grpc.generated.vector_store_pb2_grpc import VectorStoreServiceStub
+from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
+from llm_cache.vector_store.implementations.memory import InMemoryVectorStore
 
 
 @pytest.fixture

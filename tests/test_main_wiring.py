@@ -41,7 +41,7 @@ def test_importing_orchestrator_server_does_not_import_provider_implementations(
             sys.executable,
             "-c",
             (
-                "import sys; import llm_cache.orchestrator.orchestrator_server; "
+                "import sys; import llm_cache.orchestrator.grpc.server; "
                 "print('chromadb' in sys.modules, 'ollama' in sys.modules)"
             ),
         ],
