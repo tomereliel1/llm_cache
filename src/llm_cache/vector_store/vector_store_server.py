@@ -5,6 +5,7 @@ import sys
 from llm_cache.config import ConfigError
 from llm_cache.config.vector_store_server_cli_args import parse_vector_store_server_args
 from llm_cache.factories.vector_store_factory import create_vector_store
+from llm_cache.server_output import print_server_started
 from llm_cache.vector_store.vector_store_grpc_service import create_vector_store_grpc_server
 
 
@@ -23,7 +24,14 @@ def main(argv: list[str] | None = None) -> int:
         raise RuntimeError(f"Failed to bind vector store gRPC server to {address}")
 
     server.start()
-    print(f"Vector store gRPC server listening on {address}")
+    print_server_started(
+        "Vector Store",
+        address,
+        (
+            ("Provider", config.vector_store.provider),
+            ("Eviction policy", config.vector_store.eviction_policy),
+        ),
+    )
     try:
         server.wait_for_termination()
     except KeyboardInterrupt:

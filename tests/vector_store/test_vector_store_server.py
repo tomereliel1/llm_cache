@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from llm_cache.config import VectorStoreConfig, VectorStoreServerConfig
-from llm_cache.vector_store import InMemoryVectorStore, vector_store_grpc_server
+from llm_cache.vector_store import InMemoryVectorStore, vector_store_server
 
 
 class ServerSpy:
@@ -36,7 +36,7 @@ def test_main_uses_parsed_config_to_start_server(monkeypatch) -> None:
     server_calls = []
 
     monkeypatch.setattr(
-        vector_store_grpc_server,
+        vector_store_server,
         "parse_vector_store_server_args",
         lambda argv: config,
     )
@@ -52,14 +52,14 @@ def test_main_uses_parsed_config_to_start_server(monkeypatch) -> None:
         server_calls.append((vector_store_arg, max_workers))
         return server
 
-    monkeypatch.setattr(vector_store_grpc_server, "create_vector_store", create_vector_store)
+    monkeypatch.setattr(vector_store_server, "create_vector_store", create_vector_store)
     monkeypatch.setattr(
-        vector_store_grpc_server,
+        vector_store_server,
         "create_vector_store_grpc_server",
         create_vector_store_grpc_server,
     )
 
-    assert vector_store_grpc_server.main(["ignored"]) == 0
+    assert vector_store_server.main(["ignored"]) == 0
 
     assert factory_calls == [config.vector_store]
     assert server_calls == [(vector_store, 3)]
@@ -82,12 +82,12 @@ def test_main_prints_clean_configuration_error(
         ),
     )
     monkeypatch.setattr(
-        vector_store_grpc_server,
+        vector_store_server,
         "parse_vector_store_server_args",
         lambda argv: config,
     )
 
-    assert vector_store_grpc_server.main(["ignored"]) == 2
+    assert vector_store_server.main(["ignored"]) == 2
     assert capsys.readouterr().err == (
         "Configuration error: Eviction policy 'lru' is not supported by vector store "
         "provider 'vector-store-hit-stub'. Supported eviction policies: default\n"

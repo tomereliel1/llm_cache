@@ -92,7 +92,7 @@ ollama serve
 uv run python -m llm_cache.embedding.embedding_server --port 50051
 
 # Terminal 3
-uv run python -m llm_cache.vector_store.vector_store_grpc_server --port 50052 \
+uv run python -m llm_cache.vector_store.vector_store_server --port 50052 \
   --vector-store-provider in-memory
 
 # Terminal 4

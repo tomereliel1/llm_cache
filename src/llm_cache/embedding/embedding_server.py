@@ -10,6 +10,7 @@ from llm_cache.embedding import embedding_pb2_grpc
 from llm_cache.embedding.embedding_grpc_service import EmbeddingGrpcService
 from llm_cache.factories import create_embedder
 from llm_cache.health import all_healthy, format_health_report, run_health_checks
+from llm_cache.server_output import print_server_started
 
 
 def create_embedding_server(
@@ -40,10 +41,13 @@ def main(argv: list[str] | None = None) -> int:
     server.add_insecure_port(bind_address)
     server.start()
 
-    print(
-        "Embedding gRPC server started "
-        f"on {bind_address} "
-        f"using provider={config.embedding.provider}, model={config.embedding.model}"
+    print_server_started(
+        "Embedding",
+        bind_address,
+        (
+            ("Provider", config.embedding.provider),
+            ("Model", config.embedding.model),
+        ),
     )
 
     try:

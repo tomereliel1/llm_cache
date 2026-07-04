@@ -10,6 +10,7 @@ from llm_cache.embedding.embedding_grpc_client import EmbeddingGrpcClient
 from llm_cache.llm.llm_grpc_client import LLMGrpcClient
 from llm_cache.orchestrator import CacheOrchestrator, orchestrator_pb2_grpc
 from llm_cache.orchestrator.orchestrator_grpc_service import OrchestratorGrpcService
+from llm_cache.server_output import print_server_started
 from llm_cache.vector_store.vector_store_grpc_client import VectorStoreGrpcClient
 
 DEFAULT_EMBEDDING_TARGET = "localhost:50051"
@@ -123,12 +124,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Could not bind orchestrator gRPC server to {address}")
             return 1
         server.start()
-        print(f"Orchestrator gRPC server started on {address}")
-        print(
-            f"Remote providers: embedding={args.embedding_target}, "
-            f"vector_store={args.vector_store_target}, llm={args.llm_target}"
+        print_server_started(
+            "Orchestrator",
+            address,
+            (
+                ("Embedding target", args.embedding_target),
+                ("Vector Store target", args.vector_store_target),
+                ("LLM target", args.llm_target),
+            ),
         )
-        print("Ready to receive requests. Press Ctrl+C to stop.")
         try:
             server.wait_for_termination()
         except KeyboardInterrupt:

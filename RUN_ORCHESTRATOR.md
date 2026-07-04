@@ -39,7 +39,7 @@ uv run python -m llm_cache.embedding.embedding_server \
 For a cache that lasts until this process exits:
 
 ```bash
-uv run python -m llm_cache.vector_store.vector_store_grpc_server \
+uv run python -m llm_cache.vector_store.vector_store_server \
   --host localhost --port 50052 \
   --vector-store-provider in-memory \
   --similarity-threshold 0.8 --cache-max-capacity 1000

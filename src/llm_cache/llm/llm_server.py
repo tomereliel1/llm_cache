@@ -9,6 +9,7 @@ from llm_cache.factories import create_llm_provider
 from llm_cache.health import all_healthy, format_health_report, run_health_checks
 from llm_cache.llm import ILLMProvider, llm_pb2_grpc
 from llm_cache.llm.llm_grpc_service import LLMGrpcService
+from llm_cache.server_output import print_server_started
 
 
 def create_llm_server(
@@ -38,10 +39,13 @@ def main(argv: list[str] | None = None) -> int:
     server.add_insecure_port(bind_address)
     server.start()
 
-    print(
-        "LLM gRPC server started "
-        f"on {bind_address} "
-        f"using provider={config.llm.provider}, model={config.llm.model}"
+    print_server_started(
+        "LLM",
+        bind_address,
+        (
+            ("Provider", config.llm.provider),
+            ("Model", config.llm.model),
+        ),
     )
 
     try:
