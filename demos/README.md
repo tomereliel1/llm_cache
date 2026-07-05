@@ -40,7 +40,7 @@ ollama pull embeddinggemma
 
 # Terminal 2
 uv run python -m llm_cache.embedding.grpc.server --host localhost --port 50051 \
-  --embedding-provider ollama --embedding-model embeddinggemma
+  --provider ollama --model embeddinggemma
 
 # Terminal 3
 uv run python -m demos.grpc_embedding_orchestrator_demo \
@@ -71,7 +71,7 @@ ollama pull gemma3:4b
 
 # Terminal 2
 uv run python -m llm_cache.llm.grpc.server --host localhost --port 50053 \
-  --llm-provider ollama --llm-model gemma3:4b
+  --provider ollama --model gemma3:4b
 
 # Terminal 3
 uv run python -m demos.grpc_llm_orchestrator_demo --llm-target localhost:50053
@@ -93,7 +93,7 @@ uv run python -m llm_cache.embedding.grpc.server --port 50051
 
 # Terminal 3
 uv run python -m llm_cache.vector_store.grpc.server --port 50052 \
-  --vector-store-provider in-memory
+  --provider in-memory
 
 # Terminal 4
 uv run python -m llm_cache.llm.grpc.server --port 50053

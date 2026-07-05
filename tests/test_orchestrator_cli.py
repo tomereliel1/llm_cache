@@ -38,7 +38,7 @@ def test_server_args_include_runtime_and_provider_targets():
             "127.0.0.1",
             "--port",
             "50100",
-            "--max-workers",
+            "--workers",
             "4",
             "--embedding-target",
             "embedding:51051",
@@ -50,7 +50,7 @@ def test_server_args_include_runtime_and_provider_targets():
             "12",
         ]
     )
-    assert (args.host, args.port, args.max_workers) == ("127.0.0.1", 50100, 4)
+    assert (args.host, args.port, args.workers) == ("127.0.0.1", 50100, 4)
     assert args.embedding_target == "embedding:51051"
     assert args.vector_store_target == "vectors:51052"
     assert args.llm_target == "llm:51053"

@@ -37,19 +37,19 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
             "127.0.0.1",
             "--port",
             "60000",
-            "--vector-store-provider",
+            "--provider",
             "in-memory",
             "--similarity-threshold",
             "0.9",
-            "--vector-store-path",
+            "--path",
             ".cache/custom",
-            "--vector-store-collection",
+            "--collection",
             "custom_collection",
-            "--cache-max-capacity",
+            "--capacity",
             "42",
             "--eviction-policy",
             "lru",
-            "--max-workers",
+            "--workers",
             "3",
         ]
     )
@@ -68,7 +68,7 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
 def test_parse_vector_store_server_args_normalizes_names() -> None:
     config = parse_vector_store_server_args(
         [
-            "--vector-store-provider",
+            "--provider",
             " In-Memory ",
             "--eviction-policy",
             " LRU ",
@@ -81,7 +81,7 @@ def test_parse_vector_store_server_args_normalizes_names() -> None:
 
 def test_invalid_vector_store_provider_exits() -> None:
     with pytest.raises(SystemExit):
-        parse_vector_store_server_args(["--vector-store-provider", "bad-provider"])
+        parse_vector_store_server_args(["--provider", "bad-provider"])
 
 
 def test_unknown_eviction_policy_is_preserved_for_factory_validation() -> None:
@@ -97,8 +97,8 @@ def test_unknown_eviction_policy_is_preserved_for_factory_validation() -> None:
         ("--host", "   "),
         ("--port", "0"),
         ("--port", "65536"),
-        ("--max-workers", "0"),
-        ("--cache-max-capacity", "0"),
+        ("--workers", "0"),
+        ("--capacity", "0"),
     ],
 )
 def test_invalid_vector_store_server_runtime_args_exit(flag: str, value: str) -> None:

@@ -67,3 +67,7 @@ chroma_db/
 # Docker override files
 
 docker-compose.override.yml
+
+# Local runtime configuration (copy from the committed example)
+
+configs/configuration.json

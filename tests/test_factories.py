@@ -118,7 +118,7 @@ def test_create_llm_provider_returns_groq_llm_provider_for_groq_with_api_key(
         LLMConfig(
             provider="groq",
             model="llama-3.1-8b-instant",
-            api_key_env="TEST_GROQ_API_KEY",
+            groq_api_key_env="TEST_GROQ_API_KEY",
         )
     )
 

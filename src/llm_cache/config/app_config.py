@@ -19,7 +19,7 @@ class LLMConfig:
     provider: str
     model: str | None = None
     base_url: str | None = None
-    api_key_env: str | None = None
+    groq_api_key_env: str | None = None
 
 
 @dataclass(frozen=True)

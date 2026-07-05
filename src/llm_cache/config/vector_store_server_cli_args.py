@@ -12,6 +12,7 @@ from llm_cache.config.provider_options import (
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     normalize_provider_name,
 )
+from llm_cache.config.runtime_config import apply_config_defaults
 
 DEFAULT_VECTOR_STORE_SERVER_HOST = "0.0.0.0"
 DEFAULT_VECTOR_STORE_SERVER_PORT = 50052
@@ -29,7 +30,9 @@ class VectorStoreServerConfig:
     vector_store: VectorStoreConfig
 
 
-def build_vector_store_server_parser() -> argparse.ArgumentParser:
+def build_vector_store_server_parser(
+    argv: Sequence[str] | None = None,
+) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the vector store gRPC service.")
     parser.add_argument(
         "--host",
@@ -43,7 +46,7 @@ def build_vector_store_server_parser() -> argparse.ArgumentParser:
         help=f"Port to listen on. Default: {DEFAULT_VECTOR_STORE_SERVER_PORT}",
     )
     parser.add_argument(
-        "--vector-store-provider",
+        "--provider",
         default=DEFAULT_VECTOR_STORE_PROVIDER,
         help=f"Vector-store provider. Default: {DEFAULT_VECTOR_STORE_PROVIDER}",
     )
@@ -54,17 +57,17 @@ def build_vector_store_server_parser() -> argparse.ArgumentParser:
         help=f"Similarity threshold between 0 and 1. Default: {DEFAULT_SIMILARITY_THRESHOLD}",
     )
     parser.add_argument(
-        "--vector-store-path",
+        "--path",
         default=DEFAULT_VECTOR_STORE_PATH,
         help="Local persistence path for vector stores that support persistence.",
     )
     parser.add_argument(
-        "--vector-store-collection",
+        "--collection",
         default=DEFAULT_VECTOR_STORE_COLLECTION,
         help="Collection name for vector stores that support named collections.",
     )
     parser.add_argument(
-        "--cache-max-capacity",
+        "--capacity",
         type=int,
         default=DEFAULT_VECTOR_STORE_MAX_CAPACITY,
         help=f"Maximum number of cache entries. Default: {DEFAULT_VECTOR_STORE_MAX_CAPACITY}",
@@ -75,7 +78,7 @@ def build_vector_store_server_parser() -> argparse.ArgumentParser:
         help=f"Cache eviction policy. Default: {DEFAULT_EVICTION_POLICY}",
     )
     parser.add_argument(
-        "--max-workers",
+        "--workers",
         type=int,
         default=DEFAULT_VECTOR_STORE_SERVER_MAX_WORKERS,
         help=(
@@ -83,32 +86,37 @@ def build_vector_store_server_parser() -> argparse.ArgumentParser:
             f"Default: {DEFAULT_VECTOR_STORE_SERVER_MAX_WORKERS}"
         ),
     )
+    apply_config_defaults(
+        parser,
+        argv,
+        "vector_store_service",
+    )
     return parser
 
 
 def parse_vector_store_server_args(
     argv: Sequence[str] | None = None,
 ) -> VectorStoreServerConfig:
-    parser = build_vector_store_server_parser()
+    parser = build_vector_store_server_parser(argv)
     args = parser.parse_args(argv)
 
     args.host = args.host.strip()
-    args.vector_store_provider = normalize_provider_name(args.vector_store_provider)
+    args.provider = normalize_provider_name(args.provider)
     args.eviction_policy = normalize_provider_name(args.eviction_policy)
 
     _validate_vector_store_server_runtime_args(parser, args)
-    _validate_vector_store_provider(parser, args.vector_store_provider)
+    _validate_vector_store_provider(parser, args.provider)
 
     return VectorStoreServerConfig(
         host=args.host,
         port=args.port,
-        max_workers=args.max_workers,
+        max_workers=args.workers,
         vector_store=VectorStoreConfig(
-            provider=args.vector_store_provider,
+            provider=args.provider,
             similarity_threshold=args.similarity_threshold,
-            persist_path=args.vector_store_path,
-            collection_name=args.vector_store_collection,
-            max_capacity=args.cache_max_capacity,
+            persist_path=args.path,
+            collection_name=args.collection,
+            max_capacity=args.capacity,
             eviction_policy=args.eviction_policy,
         ),
     )
@@ -124,11 +132,11 @@ def _validate_vector_store_server_runtime_args(
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
 
-    if args.max_workers < 1:
-        parser.error("--max-workers must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
 
-    if args.cache_max_capacity < 1:
-        parser.error("--cache-max-capacity must be at least 1")
+    if args.capacity < 1:
+        parser.error("--capacity must be at least 1")
 
 
 def _validate_vector_store_provider(

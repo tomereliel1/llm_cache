@@ -23,7 +23,7 @@ def create_embedder(config: EmbeddingConfig) -> IEmbedder:
 
         from llm_cache.embedding.providers.ollama import OllamaEmbedder
 
-        return OllamaEmbedder(model_name=config.model)
+        return OllamaEmbedder(model_name=config.model, base_url=config.base_url)
 
     raise ConfigError(
         f"Unknown embedding provider '{config.provider}'. "

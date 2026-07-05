@@ -34,11 +34,11 @@ def test_parse_embedding_server_args_accepts_explicit_values() -> None:
             "127.0.0.1",
             "--port",
             "60000",
-            "--embedding-provider",
+            "--provider",
             provider,
-            "--embedding-model",
+            "--model",
             model,
-            "--max-workers",
+            "--workers",
             "3",
             "--check-setup",
         ]
@@ -53,7 +53,7 @@ def test_parse_embedding_server_args_accepts_explicit_values() -> None:
 
 
 def test_parse_embedding_server_args_normalizes_provider_name() -> None:
-    config = parse_embedding_server_args(["--embedding-provider", " Ollama "])
+    config = parse_embedding_server_args(["--provider", " Ollama "])
 
     assert config.embedding.provider == "ollama"
     assert config.embedding.model == default_embedding_model("ollama")
@@ -61,12 +61,12 @@ def test_parse_embedding_server_args_normalizes_provider_name() -> None:
 
 def test_invalid_embedding_provider_exits() -> None:
     with pytest.raises(SystemExit):
-        parse_embedding_server_args(["--embedding-provider", "bad-provider"])
+        parse_embedding_server_args(["--provider", "bad-provider"])
 
 
 def test_invalid_embedding_model_for_provider_exits() -> None:
     with pytest.raises(SystemExit):
-        parse_embedding_server_args(["--embedding-model", "bad-model"])
+        parse_embedding_server_args(["--model", "bad-model"])
 
 
 @pytest.mark.parametrize(
@@ -76,7 +76,7 @@ def test_invalid_embedding_model_for_provider_exits() -> None:
         ("--host", "   "),
         ("--port", "0"),
         ("--port", "65536"),
-        ("--max-workers", "0"),
+        ("--workers", "0"),
     ],
 )
 def test_invalid_embedding_server_runtime_args_exit(flag: str, value: str) -> None:

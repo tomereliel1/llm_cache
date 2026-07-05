@@ -11,6 +11,7 @@ from llm_cache.config.provider_options import (
     default_llm_model,
     normalize_provider_name,
 )
+from llm_cache.config.runtime_config import apply_config_defaults
 
 DEFAULT_LLM_SERVER_HOST = "0.0.0.0"
 DEFAULT_LLM_SERVER_PORT = 50053
@@ -26,7 +27,7 @@ class LLMServerConfig:
     llm: LLMConfig
 
 
-def build_llm_server_parser() -> argparse.ArgumentParser:
+def build_llm_server_parser(argv: Sequence[str] | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the LLM gRPC service.")
     parser.add_argument(
         "--host",
@@ -40,22 +41,25 @@ def build_llm_server_parser() -> argparse.ArgumentParser:
         help=f"Port to listen on. Default: {DEFAULT_LLM_SERVER_PORT}",
     )
     parser.add_argument(
-        "--llm-provider",
+        "--provider",
         default=DEFAULT_LLM_PROVIDER,
         help=f"LLM provider. Default: {DEFAULT_LLM_PROVIDER}",
     )
     parser.add_argument(
-        "--llm-model",
+        "--model",
         default=None,
         help="LLM model name. If omitted, the selected provider's default is used.",
     )
     parser.add_argument(
-        "--llm-api-key-env",
+        "--groq-api-key-env",
         default=None,
-        help="Environment variable containing the provider API key.",
+        help=(
+            "Name of the environment variable containing the Groq API key; "
+            "the key itself must not be passed here. Default: GROQ_API_KEY"
+        ),
     )
     parser.add_argument(
-        "--max-workers",
+        "--workers",
         type=int,
         default=DEFAULT_LLM_SERVER_MAX_WORKERS,
         help=(
@@ -68,40 +72,47 @@ def build_llm_server_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run provider health checks before starting the server.",
     )
+    parser.add_argument("--base-url", default=None, help="Optional provider API base URL.")
+    apply_config_defaults(
+        parser,
+        argv,
+        "llm_service",
+    )
     return parser
 
 
 def parse_llm_server_args(argv: Sequence[str] | None = None) -> LLMServerConfig:
-    parser = build_llm_server_parser()
+    parser = build_llm_server_parser(argv)
     args = parser.parse_args(argv)
 
     args.host = args.host.strip()
-    args.llm_provider = normalize_provider_name(args.llm_provider)
+    args.provider = normalize_provider_name(args.provider)
 
     _validate_llm_server_runtime_args(parser, args)
-    _validate_llm_provider(parser, args.llm_provider)
+    _validate_llm_provider(parser, args.provider)
 
-    if args.llm_model is None:
-        args.llm_model = default_llm_model(args.llm_provider)
+    if args.model is None:
+        args.model = default_llm_model(args.provider)
     else:
-        args.llm_model = args.llm_model.strip()
+        args.model = args.model.strip()
 
-    if args.llm_api_key_env is not None:
-        args.llm_api_key_env = args.llm_api_key_env.strip()
-        if not args.llm_api_key_env:
-            parser.error("--llm-api-key-env must not be empty")
+    if args.groq_api_key_env is not None:
+        args.groq_api_key_env = args.groq_api_key_env.strip()
+        if not args.groq_api_key_env:
+            parser.error("--groq-api-key-env must not be empty")
 
-    _validate_llm_model(parser, args.llm_provider, args.llm_model)
+    _validate_llm_model(parser, args.provider, args.model)
 
     return LLMServerConfig(
         host=args.host,
         port=args.port,
-        max_workers=args.max_workers,
+        max_workers=args.workers,
         check_setup=args.check_setup,
         llm=LLMConfig(
-            provider=args.llm_provider,
-            model=args.llm_model,
-            api_key_env=args.llm_api_key_env,
+            provider=args.provider,
+            model=args.model,
+            base_url=args.base_url,
+            groq_api_key_env=args.groq_api_key_env,
         ),
     )
 
@@ -116,8 +127,8 @@ def _validate_llm_server_runtime_args(
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
 
-    if args.max_workers < 1:
-        parser.error("--max-workers must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
 
 
 def _validate_llm_provider(

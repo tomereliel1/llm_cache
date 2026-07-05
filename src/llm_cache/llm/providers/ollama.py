@@ -5,8 +5,9 @@ from llm_cache.llm.interface import ILLMProvider
 
 
 class OllamaLLMProvider(ILLMProvider):
-    def __init__(self, model_name: str):
+    def __init__(self, model_name: str, base_url: str | None = None):
         self.model_name = model_name
+        self._ollama_client = ollama.Client(host=base_url)
 
     def generate_answer(self, prompt: str) -> str:
         if not prompt:
@@ -17,7 +18,7 @@ class OllamaLLMProvider(ILLMProvider):
         return self._generate_answer(prompt)
 
     def _generate_answer(self, prompt: str) -> str:
-        response = ollama.generate(
+        response = self._ollama_client.generate(
             model=self.model_name,
             prompt=prompt,
         )

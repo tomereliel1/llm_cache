@@ -11,6 +11,7 @@ from llm_cache.config.provider_options import (
     default_embedding_model,
     normalize_provider_name,
 )
+from llm_cache.config.runtime_config import apply_config_defaults
 
 DEFAULT_EMBEDDING_SERVER_HOST = "0.0.0.0"
 DEFAULT_EMBEDDING_SERVER_PORT = 50051
@@ -26,7 +27,9 @@ class EmbeddingServerConfig:
     embedding: EmbeddingConfig
 
 
-def build_embedding_server_parser() -> argparse.ArgumentParser:
+def build_embedding_server_parser(
+    argv: Sequence[str] | None = None,
+) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the embedding gRPC service.")
     parser.add_argument(
         "--host",
@@ -40,12 +43,12 @@ def build_embedding_server_parser() -> argparse.ArgumentParser:
         help=f"Port to listen on. Default: {DEFAULT_EMBEDDING_SERVER_PORT}",
     )
     parser.add_argument(
-        "--embedding-provider",
+        "--provider",
         default=DEFAULT_EMBEDDING_PROVIDER,
         help=f"Embedding provider. Default: {DEFAULT_EMBEDDING_PROVIDER}",
     )
     parser.add_argument(
-        "--embedding-model",
+        "--model",
         default=None,
         help=(
             "Embedding model name. If omitted, the default model for the selected "
@@ -53,7 +56,7 @@ def build_embedding_server_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--max-workers",
+        "--workers",
         type=int,
         default=DEFAULT_EMBEDDING_SERVER_MAX_WORKERS,
         help=(
@@ -66,36 +69,43 @@ def build_embedding_server_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run provider health checks before starting the server.",
     )
+    parser.add_argument("--base-url", default=None, help="Optional provider API base URL.")
+    apply_config_defaults(
+        parser,
+        argv,
+        "embedding_service",
+    )
     return parser
 
 
 def parse_embedding_server_args(
     argv: Sequence[str] | None = None,
 ) -> EmbeddingServerConfig:
-    parser = build_embedding_server_parser()
+    parser = build_embedding_server_parser(argv)
     args = parser.parse_args(argv)
 
     args.host = args.host.strip()
-    args.embedding_provider = normalize_provider_name(args.embedding_provider)
+    args.provider = normalize_provider_name(args.provider)
 
     _validate_embedding_server_runtime_args(parser, args)
-    _validate_embedding_provider(parser, args.embedding_provider)
+    _validate_embedding_provider(parser, args.provider)
 
-    if args.embedding_model is None:
-        args.embedding_model = default_embedding_model(args.embedding_provider)
+    if args.model is None:
+        args.model = default_embedding_model(args.provider)
     else:
-        args.embedding_model = args.embedding_model.strip()
+        args.model = args.model.strip()
 
-    _validate_embedding_model(parser, args.embedding_provider, args.embedding_model)
+    _validate_embedding_model(parser, args.provider, args.model)
 
     return EmbeddingServerConfig(
         host=args.host,
         port=args.port,
-        max_workers=args.max_workers,
+        max_workers=args.workers,
         check_setup=args.check_setup,
         embedding=EmbeddingConfig(
-            provider=args.embedding_provider,
-            model=args.embedding_model,
+            provider=args.provider,
+            model=args.model,
+            base_url=args.base_url,
         ),
     )
 
@@ -110,8 +120,8 @@ def _validate_embedding_server_runtime_args(
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
 
-    if args.max_workers < 1:
-        parser.error("--max-workers must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
 
 
 def _validate_embedding_provider(

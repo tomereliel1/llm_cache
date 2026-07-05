@@ -6,6 +6,7 @@ from contextlib import ExitStack
 
 import grpc
 
+from llm_cache.config.runtime_config import apply_config_defaults
 from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
 from llm_cache.llm.grpc.client import LLMGrpcClient
 from llm_cache.orchestrator import CacheOrchestrator
@@ -46,7 +47,7 @@ def parse_orchestrator_server_args(argv: list[str] | None = None) -> argparse.Na
     )
     parser.add_argument("--host", default="localhost")
     parser.add_argument("--port", type=int, default=50050)
-    parser.add_argument("--max-workers", type=int, default=10)
+    parser.add_argument("--workers", type=int, default=10)
     parser.add_argument("--embedding-target", default=DEFAULT_EMBEDDING_TARGET)
     parser.add_argument("--vector-store-target", default=DEFAULT_VECTOR_STORE_TARGET)
     parser.add_argument("--llm-target", default=DEFAULT_LLM_TARGET)
@@ -61,6 +62,11 @@ def parse_orchestrator_server_args(argv: list[str] | None = None) -> argparse.Na
         action="store_true",
         help="Check that all three provider gRPC targets are reachable, then exit.",
     )
+    apply_config_defaults(
+        parser,
+        argv,
+        "orchestrator_service",
+    )
     args = parser.parse_args(argv)
 
     args.host = args.host.strip()
@@ -73,8 +79,8 @@ def parse_orchestrator_server_args(argv: list[str] | None = None) -> argparse.Na
         parser.error("--host must not be empty")
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
-    if args.max_workers < 1:
-        parser.error("--max-workers must be at least 1")
+    if args.workers < 1:
+        parser.error("--workers must be at least 1")
     if args.provider_timeout_seconds <= 0:
         parser.error("--provider-timeout-seconds must be positive")
     return args
@@ -119,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
             LLMGrpcClient(args.llm_target, args.provider_timeout_seconds)
         )
         orchestrator = CacheOrchestrator(embedder, llm_provider, vector_store)
-        server = create_orchestrator_server(orchestrator, args.max_workers)
+        server = create_orchestrator_server(orchestrator, args.workers)
         address = f"{args.host}:{args.port}"
         if server.add_insecure_port(address) == 0:
             print(f"Could not bind orchestrator gRPC server to {address}")

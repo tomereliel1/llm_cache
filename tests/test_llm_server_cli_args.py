@@ -22,12 +22,12 @@ def test_parse_llm_server_args_uses_shared_defaults() -> None:
     assert config.check_setup is False
     assert config.llm.provider == DEFAULT_LLM_PROVIDER
     assert config.llm.model == default_llm_model(DEFAULT_LLM_PROVIDER)
-    assert config.llm.api_key_env is None
+    assert config.llm.groq_api_key_env is None
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_LLM_PROVIDERS)
 def test_llm_provider_uses_provider_specific_default_model(provider: str) -> None:
-    config = parse_llm_server_args(["--llm-provider", provider])
+    config = parse_llm_server_args(["--provider", provider])
 
     assert config.llm.provider == provider
     assert config.llm.model == default_llm_model(provider)
@@ -40,13 +40,13 @@ def test_parse_llm_server_args_accepts_explicit_values() -> None:
             "127.0.0.1",
             "--port",
             "60001",
-            "--llm-provider",
+            "--provider",
             "groq",
-            "--llm-model",
+            "--model",
             "llama-3.1-8b-instant",
-            "--llm-api-key-env",
+            "--groq-api-key-env",
             "CUSTOM_GROQ_KEY",
-            "--max-workers",
+            "--workers",
             "4",
             "--check-setup",
         ]
@@ -58,11 +58,11 @@ def test_parse_llm_server_args_accepts_explicit_values() -> None:
     assert config.check_setup is True
     assert config.llm.provider == "groq"
     assert config.llm.model == "llama-3.1-8b-instant"
-    assert config.llm.api_key_env == "CUSTOM_GROQ_KEY"
+    assert config.llm.groq_api_key_env == "CUSTOM_GROQ_KEY"
 
 
 def test_parse_llm_server_args_normalizes_provider_name() -> None:
-    config = parse_llm_server_args(["--llm-provider", " Groq "])
+    config = parse_llm_server_args(["--provider", " Groq "])
 
     assert config.llm.provider == "groq"
     assert config.llm.model == default_llm_model("groq")
@@ -70,16 +70,16 @@ def test_parse_llm_server_args_normalizes_provider_name() -> None:
 
 def test_invalid_llm_provider_exits() -> None:
     with pytest.raises(SystemExit):
-        parse_llm_server_args(["--llm-provider", "bad-provider"])
+        parse_llm_server_args(["--provider", "bad-provider"])
 
 
 def test_invalid_llm_model_for_provider_exits() -> None:
     with pytest.raises(SystemExit):
         parse_llm_server_args(
             [
-                "--llm-provider",
+                "--provider",
                 "ollama",
-                "--llm-model",
+                "--model",
                 "llama-3.1-8b-instant",
             ]
         )
@@ -92,9 +92,9 @@ def test_invalid_llm_model_for_provider_exits() -> None:
         ("--host", "   "),
         ("--port", "0"),
         ("--port", "65536"),
-        ("--max-workers", "0"),
-        ("--llm-api-key-env", ""),
-        ("--llm-api-key-env", "   "),
+        ("--workers", "0"),
+        ("--groq-api-key-env", ""),
+        ("--groq-api-key-env", "   "),
     ],
 )
 def test_invalid_llm_server_args_exit(flag: str, value: str) -> None:

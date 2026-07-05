@@ -25,7 +25,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
 
         from llm_cache.llm.providers.ollama import OllamaLLMProvider
 
-        return OllamaLLMProvider(model_name=config.model)
+        return OllamaLLMProvider(model_name=config.model, base_url=config.base_url)
 
     if provider == "groq":
         if not config.model:
@@ -34,7 +34,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
                 "Example: LLMConfig(provider='groq', model='llama-3.1-8b-instant')"
             )
 
-        api_key_env = config.api_key_env or "GROQ_API_KEY"
+        api_key_env = config.groq_api_key_env or "GROQ_API_KEY"
         api_key = os.environ.get(api_key_env)
         if not api_key:
             raise ConfigError(

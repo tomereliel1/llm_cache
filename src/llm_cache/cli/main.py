@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from collections.abc import Callable
 
+from llm_cache.config.runtime_config import apply_config_defaults
 from llm_cache.orchestrator import OrchestratorGrpcClient
 
 
@@ -10,6 +11,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Send prompts to an orchestrator gRPC server.")
     parser.add_argument("--target", default="localhost:50050")
     parser.add_argument("--timeout-seconds", type=float, default=30.0)
+    apply_config_defaults(
+        parser,
+        argv,
+        "client",
+    )
     args = parser.parse_args(argv)
     if not args.target.strip():
         parser.error("--target must not be empty")

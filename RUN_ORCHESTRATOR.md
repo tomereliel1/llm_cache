@@ -31,7 +31,7 @@ ollama serve
 ```bash
 uv run python -m llm_cache.embedding.grpc.server \
   --host localhost --port 50051 \
-  --embedding-provider ollama --embedding-model embeddinggemma
+  --provider ollama --model embeddinggemma
 ```
 
 ### Terminal 3 — vector-store gRPC server
@@ -41,11 +41,11 @@ For a cache that lasts until this process exits:
 ```bash
 uv run python -m llm_cache.vector_store.grpc.server \
   --host localhost --port 50052 \
-  --vector-store-provider in-memory \
-  --similarity-threshold 0.8 --cache-max-capacity 1000
+  --provider in-memory \
+  --similarity-threshold 0.8 --capacity 1000
 ```
 
-Use `--vector-store-provider chroma` for persistent storage. Its default location is
+Use `--provider chroma` for persistent storage. Its default location is
 `.cache/vector_store`.
 
 ### Terminal 4 — LLM gRPC server
@@ -53,7 +53,7 @@ Use `--vector-store-provider chroma` for persistent storage. Its default locatio
 ```bash
 uv run python -m llm_cache.llm.grpc.server \
   --host localhost --port 50053 \
-  --llm-provider ollama --llm-model gemma3:4b
+  --provider ollama --model gemma3:4b
 ```
 
 ### Terminal 5 — orchestrator gRPC server
