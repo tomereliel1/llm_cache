@@ -1,3 +1,5 @@
+import json
+
 from llm_cache.orchestrator import QueryResult
 from llm_cache.web.main import parse_args, render_page
 
@@ -20,6 +22,28 @@ def test_web_args_keep_existing_client_target_and_timeout() -> None:
     assert args.timeout_seconds == 12
     assert args.host == "0.0.0.0"
     assert args.port == 9090
+
+
+def test_web_args_load_from_existing_client_config_section(tmp_path) -> None:
+    config_path = tmp_path / "configuration.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "client": {
+                    "target": "orchestrator:50050",
+                    "timeout_seconds": 300.0,
+                    "host": "0.0.0.0",
+                    "port": 8080,
+                }
+            }
+        )
+    )
+
+    args = parse_args(["--config", str(config_path)])
+
+    assert args.target == "orchestrator:50050"
+    assert args.host == "0.0.0.0"
+    assert args.port == 8080
 
 
 def test_render_page_shows_response_and_cache_status() -> None:
