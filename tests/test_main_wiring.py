@@ -77,7 +77,7 @@ def test_orchestrator_with_test_doubles_does_not_import_optional_providers() -> 
     assert result.stdout.strip() == "False False"
 
 
-def test_main_help_describes_orchestrator_cli() -> None:
+def test_main_help_describes_web_client() -> None:
     result = subprocess.run(
         [sys.executable, "main.py", "--help"],
         check=True,
@@ -85,5 +85,6 @@ def test_main_help_describes_orchestrator_cli() -> None:
         text=True,
     )
 
-    assert "orchestrator gRPC server" in result.stdout
+    assert "web client" in result.stdout
     assert "--target" in result.stdout
+    assert "--port" in result.stdout

@@ -1,6 +1,6 @@
 # Run the fully distributed LLM cache
 
-The root `main.py` is the interactive client. It calls the orchestrator through gRPC,
+The root `main.py` is the web client. It calls the orchestrator through gRPC,
 and the orchestrator calls the embedding, vector-store, and LLM services through gRPC.
 The original local one-process application remains available as
 `demos.local_one_prompt_demo`.
@@ -69,20 +69,23 @@ uv run python -m llm_cache.orchestrator.grpc.server \
 The three targets may use different hosts or ports. To check that all provider targets
 are reachable without starting the orchestrator server, add `--check-setup`.
 
-### Terminal 6 — interactive user client
+### Terminal 6 — web client
 
 ```bash
 uv run python main.py --target localhost:50050
 ```
 
-Equivalent module command:
+Open `http://127.0.0.1:8080` in a browser. To bind to another interface or port, add
+`--host 0.0.0.0 --port 8080`.
+
+Equivalent web module command:
 
 ```bash
-uv run python -m llm_cache.cli.main --target localhost:50050
+uv run python -m llm_cache.web.main --target localhost:50050
 ```
 
-Enter any number of prompts. Enter `exit` or `quit`, press Ctrl+D, or press Ctrl+C to
-close the client. Stop each server with Ctrl+C.
+The old terminal client remains available as `python -m llm_cache.cli.main`. Stop the web
+client and each server with Ctrl+C.
 
 ## Request path
 

@@ -1,0 +1,45 @@
+from llm_cache.orchestrator import QueryResult
+from llm_cache.web.main import parse_args, render_page
+
+
+def test_web_args_keep_existing_client_target_and_timeout() -> None:
+    args = parse_args(
+        [
+            "--target",
+            "server:123",
+            "--timeout-seconds",
+            "12",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "9090",
+        ]
+    )
+
+    assert args.target == "server:123"
+    assert args.timeout_seconds == 12
+    assert args.host == "0.0.0.0"
+    assert args.port == 9090
+
+
+def test_render_page_shows_response_and_cache_status() -> None:
+    page = render_page(
+        prompt="same prompt",
+        result=QueryResult(response="cached answer", cache_hit=True),
+    ).decode()
+
+    assert "cached answer" in page
+    assert "Cache hit" in page
+    assert "same prompt" in page
+
+
+def test_render_page_escapes_user_and_model_content() -> None:
+    page = render_page(
+        prompt='<script>alert("prompt")</script>',
+        result=QueryResult(response="<img src=x onerror=alert(1)>", cache_hit=False),
+    ).decode()
+
+    assert "<script>alert" not in page
+    assert "<img src=x" not in page
+    assert "&lt;script&gt;" in page
+    assert "&lt;img src=x" in page
