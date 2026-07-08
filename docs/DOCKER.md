@@ -37,6 +37,35 @@ Explicit command-line flags override JSON values, so manual development remains 
 uv run python -m llm_cache.llm.grpc.server --host localhost --port 50053 \
   --provider ollama --model gemma3:4b
 uv run python main.py --target localhost:50050
+uv run python main.py cli --target localhost:50050
+```
+
+`main.py` defaults to the web client. Use `main.py web` when you want to be explicit, or
+`main.py cli` for the terminal prompt loop.
+
+The Docker configuration has separate client sections:
+
+```json
+"web_client": {
+  "target": "orchestrator:50050",
+  "timeout_seconds": 300.0,
+  "host": "0.0.0.0",
+  "port": 8080
+},
+"cli_client": {
+  "target": "orchestrator:50050",
+  "timeout_seconds": 300.0
+}
+```
+
+Inside Compose, both clients run in containers, so their orchestrator target is the Compose
+service name `orchestrator:50050`. When running a client directly on the host, use
+`localhost:50050` because Compose publishes the orchestrator port to the host.
+
+To run the optional interactive CLI in Compose:
+
+```bash
+docker compose --profile cli run --rm cli-client
 ```
 
 When using Groq, keep the secret in the environment. The optional

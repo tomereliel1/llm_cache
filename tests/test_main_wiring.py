@@ -88,3 +88,16 @@ def test_main_help_describes_web_client() -> None:
     assert "web client" in result.stdout
     assert "--target" in result.stdout
     assert "--port" in result.stdout
+
+
+def test_main_cli_help_describes_terminal_client() -> None:
+    result = subprocess.run(
+        [sys.executable, "main.py", "cli", "--help"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "Send prompts to an orchestrator gRPC server" in result.stdout
+    assert "--target" in result.stdout
+    assert "--port" not in result.stdout

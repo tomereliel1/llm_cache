@@ -24,12 +24,12 @@ def test_web_args_keep_existing_client_target_and_timeout() -> None:
     assert args.port == 9090
 
 
-def test_web_args_load_from_existing_client_config_section(tmp_path) -> None:
+def test_web_args_load_from_web_client_config_section(tmp_path) -> None:
     config_path = tmp_path / "configuration.json"
     config_path.write_text(
         json.dumps(
             {
-                "client": {
+                "web_client": {
                     "target": "orchestrator:50050",
                     "timeout_seconds": 300.0,
                     "host": "0.0.0.0",

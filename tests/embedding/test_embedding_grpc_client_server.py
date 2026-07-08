@@ -6,10 +6,10 @@ from concurrent import futures
 import grpc
 import pytest
 
-from llm_cache.errors import ProviderUnavailableError
 from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
 from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
 from llm_cache.embedding.grpc.service import EmbeddingGrpcService
+from llm_cache.errors import ProviderUnavailableError
 from llm_cache.test_doubles import EmbedderStub
 
 

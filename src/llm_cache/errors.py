@@ -7,9 +7,5 @@ class ProviderUnavailableError(RuntimeError):
             "reachable, then try again."
         )
         self.technical_details = (
-            f"Provider: {provider}\n"
-            f"gRPC status: UNAVAILABLE\n"
-            f"Target: {target}\n"
-            f"Details: {details}"
+            f"Provider: {provider}\ngRPC status: UNAVAILABLE\nTarget: {target}\nDetails: {details}"
         )
-

@@ -4,4 +4,3 @@ class OrchestratorClientError(RuntimeError):
     def __init__(self, message: str, *, technical_details: str | None = None) -> None:
         super().__init__(message)
         self.technical_details = technical_details
-

@@ -7,8 +7,8 @@ from contextlib import contextmanager
 import grpc
 import pytest
 
-from llm_cache.llm import ILLMProvider
 from llm_cache.errors import ProviderUnavailableError
+from llm_cache.llm import ILLMProvider
 from llm_cache.llm.grpc.client import LLMGrpcClient
 from llm_cache.llm.grpc.generated import llm_pb2_grpc
 from llm_cache.llm.grpc.service import LLMGrpcService

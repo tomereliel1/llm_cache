@@ -33,9 +33,7 @@ class LLMGrpcClient(ILLMProvider):
         except grpc.RpcError as error:
             code = error.code()
             if code is grpc.StatusCode.UNAVAILABLE:
-                raise ProviderUnavailableError(
-                    "LLM", self._target, error.details()
-                ) from error
+                raise ProviderUnavailableError("LLM", self._target, error.details()) from error
             code_name = code.name if code is not None else code
             raise RuntimeError(f"LLM gRPC call failed: {code_name}: {error.details()}") from error
 

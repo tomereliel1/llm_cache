@@ -36,7 +36,13 @@
     "check_setup": false,
     "workers": 10
   },
-  "client": {
+  "web_client": {
+    "target": "localhost:50050",
+    "timeout_seconds": 300.0,
+    "host": "127.0.0.1",
+    "port": 8080
+  },
+  "cli_client": {
     "target": "localhost:50050",
     "timeout_seconds": 300.0
   }

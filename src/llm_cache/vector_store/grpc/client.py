@@ -31,9 +31,7 @@ class VectorStoreGrpcClient(IVectorStore):
         try:
             reply = self._stub.SearchSimilar(request, timeout=self._timeout_seconds)
         except grpc.RpcError as error:
-            raise self._grpc_error(
-                "Vector store search gRPC call failed", error
-            ) from error
+            raise self._grpc_error("Vector store search gRPC call failed", error) from error
 
         return VectorStoreResult(
             found=reply.found,
@@ -76,8 +74,6 @@ class VectorStoreGrpcClient(IVectorStore):
     def _grpc_error(self, message: str, error: grpc.RpcError) -> RuntimeError:
         code = error.code()
         if code is grpc.StatusCode.UNAVAILABLE:
-            return ProviderUnavailableError(
-                "Vector store", self._target, error.details()
-            )
+            return ProviderUnavailableError("Vector store", self._target, error.details())
         code_name = code.name if code is not None else code
         return RuntimeError(f"{message}: {code_name}: {error.details()}")

@@ -14,7 +14,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     apply_config_defaults(
         parser,
         argv,
-        "client",
+        "cli_client",
     )
     args = parser.parse_args(argv)
     if not args.target.strip():

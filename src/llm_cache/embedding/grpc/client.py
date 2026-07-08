@@ -5,9 +5,9 @@ from typing import Self
 
 import grpc
 
-from llm_cache.errors import ProviderUnavailableError
 from llm_cache.embedding.grpc.generated import embedding_pb2, embedding_pb2_grpc
 from llm_cache.embedding.interface import IEmbedder
+from llm_cache.errors import ProviderUnavailableError
 
 
 class EmbeddingGrpcClient(IEmbedder):

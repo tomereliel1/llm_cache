@@ -65,7 +65,7 @@ services:
   client:
     <<: *app-image
     build: .
-    command: python -m llm_cache.web.main --config /app/configs/configuration.json
+    command: python main.py web --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
     ports:
@@ -74,10 +74,23 @@ services:
       orchestrator:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=2).close()"]
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://localhost:8080/health', timeout=2); response.read(); response.close()"]
       interval: 5s
       timeout: 3s
       retries: 12
+
+  cli-client:
+    <<: *app-image
+    build: .
+    command: python main.py cli --config /app/configs/configuration.json
+    profiles: [cli]
+    volumes:
+      - ./configs/configuration.json:/app/configs/configuration.json:ro
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
 
   ollama:
     image: ollama/ollama:latest

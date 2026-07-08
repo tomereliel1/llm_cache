@@ -21,7 +21,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--timeout-seconds", type=float, default=300.0)
     parser.add_argument("--host", default="127.0.0.1", help="Web server bind host.")
     parser.add_argument("--port", type=int, default=8080, help="Web server port.")
-    apply_config_defaults(parser, argv, "client")
+    apply_config_defaults(parser, argv, "web_client")
     args = parser.parse_args(argv)
 
     args.target = args.target.strip()
@@ -66,9 +66,7 @@ def render_page(
               <summary>View technical details</summary>
               <pre>{html.escape(technical_details)}</pre>
             </details>"""
-        outcome = (
-            f'<div class="error" role="alert">{html.escape(error)}{details}</div>'
-        )
+        outcome = f'<div class="error" role="alert">{html.escape(error)}{details}</div>'
 
     status_class = "ready" if ready else "waiting"
     status_text = "Backend ready" if ready else "Waiting for backend"

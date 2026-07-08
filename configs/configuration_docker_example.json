@@ -38,10 +38,14 @@
     "check_setup": false,
     "workers": 10
   },
-  "client": {
+  "web_client": {
     "target": "orchestrator:50050",
     "timeout_seconds": 300.0,
     "host": "0.0.0.0",
     "port": 8080
+  },
+  "cli_client": {
+    "target": "orchestrator:50050",
+    "timeout_seconds": 300.0
   }
 }
