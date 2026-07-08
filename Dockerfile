@@ -10,6 +10,7 @@ COPY src ./src
 COPY main.py ./main.py
 COPY configs/configuration_docker_example.json ./configs/configuration_docker_example.json
 
-RUN pip install --no-cache-dir .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --retries 10 --timeout 60 .
 
 CMD ["python", "main.py", "--help"]

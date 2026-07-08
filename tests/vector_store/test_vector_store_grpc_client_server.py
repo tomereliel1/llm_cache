@@ -4,6 +4,7 @@ from collections.abc import Iterator
 
 import pytest
 
+from llm_cache.errors import ProviderUnavailableError
 from llm_cache.vector_store import InMemoryVectorStore, VectorStoreGrpcClient
 from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
@@ -51,5 +52,11 @@ def test_vector_store_grpc_client_returns_miss(
 
 def test_vector_store_grpc_client_translates_grpc_errors() -> None:
     with VectorStoreGrpcClient(target="localhost:1", timeout_seconds=0.1) as client:
-        with pytest.raises(RuntimeError, match="Vector store search gRPC call failed"):
+        with pytest.raises(
+            ProviderUnavailableError,
+            match=r"^Vector store service is unavailable\.",
+        ) as exc_info:
             client.search_similar([1.0, 0.0])
+
+    assert "Provider: Vector store" in exc_info.value.technical_details
+    assert "Target: localhost:1" in exc_info.value.technical_details

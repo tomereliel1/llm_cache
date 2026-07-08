@@ -67,3 +67,23 @@ def test_render_page_escapes_user_and_model_content() -> None:
     assert "<img src=x" not in page
     assert "&lt;script&gt;" in page
     assert "&lt;img src=x" in page
+
+
+def test_render_page_disables_submission_while_backend_is_unavailable() -> None:
+    page = render_page(ready=False).decode()
+
+    assert "Waiting for backend" in page
+    assert 'type="submit" disabled' in page
+
+
+def test_render_page_hides_escaped_technical_error_details_by_default() -> None:
+    page = render_page(
+        error="LLM service is unavailable.",
+        technical_details="DNS lookup failed for <llm-service>",
+    ).decode()
+
+    assert "LLM service is unavailable." in page
+    assert "View technical details" in page
+    assert "<details>" in page
+    assert "DNS lookup failed for &lt;llm-service&gt;" in page
+    assert "DNS lookup failed for <llm-service>" not in page

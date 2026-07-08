@@ -24,6 +24,10 @@ docker compose up --build
 Open `http://127.0.0.1:8080`. Enter a prompt twice: the first response should show
 `Fresh response`, and the exact repeated prompt should show `Cache hit`.
 
+Compose health checks start the orchestrator only after its three provider ports are ready,
+then start the web client after the orchestrator is ready. The page also polls `/health` and
+keeps prompt submission disabled whenever the orchestrator is unavailable.
+
 The Docker example configuration is committed as a safe template. `configuration.json` is
 ignored by Git so each machine can use different addresses and providers without committing
 local settings.

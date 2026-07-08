@@ -5,6 +5,7 @@ from typing import Self
 
 import grpc
 
+from llm_cache.errors import ProviderUnavailableError
 from llm_cache.vector_store.grpc.generated import vector_store_pb2, vector_store_pb2_grpc
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
 
@@ -30,7 +31,9 @@ class VectorStoreGrpcClient(IVectorStore):
         try:
             reply = self._stub.SearchSimilar(request, timeout=self._timeout_seconds)
         except grpc.RpcError as error:
-            raise self._grpc_error("Vector store search gRPC call failed", error) from error
+            raise self._grpc_error(
+                "Vector store search gRPC call failed", error
+            ) from error
 
         return VectorStoreResult(
             found=reply.found,
@@ -70,8 +73,11 @@ class VectorStoreGrpcClient(IVectorStore):
     ) -> None:
         self.close()
 
-    @staticmethod
-    def _grpc_error(message: str, error: grpc.RpcError) -> RuntimeError:
+    def _grpc_error(self, message: str, error: grpc.RpcError) -> RuntimeError:
         code = error.code()
+        if code is grpc.StatusCode.UNAVAILABLE:
+            return ProviderUnavailableError(
+                "Vector store", self._target, error.details()
+            )
         code_name = code.name if code is not None else code
         return RuntimeError(f"{message}: {code_name}: {error.details()}")

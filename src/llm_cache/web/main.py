@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
@@ -41,6 +42,8 @@ def render_page(
     prompt: str = "",
     result: QueryResult | None = None,
     error: str | None = None,
+    technical_details: str | None = None,
+    ready: bool = True,
 ) -> bytes:
     safe_prompt = html.escape(prompt, quote=True)
     outcome = ""
@@ -56,7 +59,20 @@ def render_page(
           <div class="response">{html.escape(result.response)}</div>
         </section>"""
     elif error:
-        outcome = f'<div class="error" role="alert">{html.escape(error)}</div>'
+        details = ""
+        if technical_details:
+            details = f"""
+            <details>
+              <summary>View technical details</summary>
+              <pre>{html.escape(technical_details)}</pre>
+            </details>"""
+        outcome = (
+            f'<div class="error" role="alert">{html.escape(error)}{details}</div>'
+        )
+
+    status_class = "ready" if ready else "waiting"
+    status_text = "Backend ready" if ready else "Waiting for backend"
+    disabled = "" if ready else " disabled"
 
     document = f"""<!doctype html>
 <html lang="en">
@@ -74,6 +90,13 @@ def render_page(
       text-transform: uppercase; }}
     h1 {{ margin: 10px 0 8px; font-size: clamp(2.3rem, 7vw, 4.2rem); letter-spacing: -.055em; }}
     .intro {{ margin: 0 0 32px; color: #aeb9d3; font-size: 1.08rem; }}
+    .topline {{ display: flex; align-items: center; justify-content: space-between; gap: 16px; }}
+    .status {{ display: inline-flex; align-items: center; gap: 8px; border-radius: 999px;
+      padding: 7px 11px; color: #b8c3dc; background: #151f38; font-size: .78rem;
+      font-weight: 750; white-space: nowrap; }}
+    .status::before {{ content: ''; width: 8px; height: 8px; border-radius: 50%; }}
+    .status.ready::before {{ background: #4fe0a3; box-shadow: 0 0 10px #4fe0a3; }}
+    .status.waiting::before {{ background: #ffbd66; box-shadow: 0 0 10px #ffbd66; }}
     .panel, .answer {{ border: 1px solid #2c3757; border-radius: 18px; background: #121a30dd;
       box-shadow: 0 24px 70px #0005; }}
     .panel {{ padding: 22px; }}
@@ -96,41 +119,77 @@ def render_page(
     .response {{ margin-top: 18px; color: #dbe3f7; line-height: 1.68; white-space: pre-wrap; }}
     .error {{ margin-top: 18px; padding: 14px 16px; color: #ffc0c6; background: #401d28;
       border: 1px solid #713341; border-radius: 12px; }}
+    details {{ margin-top: 12px; color: #e1a9af; }}
+    summary {{ width: fit-content; cursor: pointer; font-weight: 700; }}
+    pre {{ overflow-x: auto; margin: 10px 0 0; padding: 12px; color: #f2d9dc;
+      background: #28121a; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }}
     footer {{ margin-top: 22px; color: #71809f; font-size: .82rem; text-align: center; }}
   </style>
 </head>
 <body>
   <main>
-    <div class="eyebrow">Semantic cache client</div>
+    <div class="topline">
+      <div class="eyebrow">Semantic cache client</div>
+      <div id="backend-status" class="status {status_class}">{status_text}</div>
+    </div>
     <h1>Ask once. Reuse wisely.</h1>
     <p class="intro">Send a prompt through your existing distributed cache setup.</p>
     <form class="panel" method="post" action="/">
       <label for="prompt">Your prompt</label>
       <textarea id="prompt" name="prompt" maxlength="10000" required autofocus
         placeholder="What would you like to know?">{safe_prompt}</textarea>
-      <div class="actions"><button type="submit">Send prompt</button></div>
+      <div class="actions"><button type="submit"{disabled}>Send prompt</button></div>
     </form>
     {outcome}
     <footer>Connected through the orchestrator gRPC service</footer>
   </main>
   <script>
-    document.querySelector('form').addEventListener('submit', () => {{
-      const button = document.querySelector('button');
+    const form = document.querySelector('form');
+    const button = document.querySelector('button');
+    const status = document.querySelector('#backend-status');
+    form.addEventListener('submit', () => {{
       button.disabled = true; button.textContent = 'Thinking…';
     }});
+    async function checkHealth() {{
+      try {{
+        const response = await fetch('/health', {{ cache: 'no-store' }});
+        const health = await response.json();
+        const ready = health.status === 'ready';
+        status.className = `status ${{ready ? 'ready' : 'waiting'}}`;
+        status.textContent = ready ? 'Backend ready' : 'Waiting for backend';
+        if (button.textContent !== 'Thinking…') button.disabled = !ready;
+      }} catch (_) {{
+        status.className = 'status waiting';
+        status.textContent = 'Backend unavailable';
+        if (button.textContent !== 'Thinking…') button.disabled = true;
+      }}
+    }}
+    checkHealth();
+    setInterval(checkHealth, 3000);
   </script>
 </body>
 </html>"""
     return document.encode("utf-8")
 
 
-def make_handler(query: Callable[[str], QueryResult]) -> type[BaseHTTPRequestHandler]:
+def make_handler(
+    query: Callable[[str], QueryResult],
+    is_ready: Callable[[], bool] = lambda: True,
+) -> type[BaseHTTPRequestHandler]:
     class WebClientHandler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
-            if self.path != "/":
-                self.send_error(404)
+            if self.path == "/health":
+                ready = is_ready()
+                self._send_json(
+                    {"status": "ready" if ready else "unavailable"},
+                    status=200 if ready else 503,
+                )
                 return
-            self._send_page(render_page())
+            if self.path == "/":
+                ready = is_ready()
+                self._send_page(render_page(ready=ready))
+                return
+            self.send_error(404)
 
         def do_POST(self) -> None:  # noqa: N802
             if self.path != "/":
@@ -150,12 +209,38 @@ def make_handler(query: Callable[[str], QueryResult]) -> type[BaseHTTPRequestHan
             if not prompt:
                 self._send_page(render_page(error="Prompt must not be empty."), status=400)
                 return
+            if not is_ready():
+                self._send_page(
+                    render_page(
+                        prompt=prompt,
+                        error="The backend is not ready yet. Please try again shortly.",
+                        ready=False,
+                    ),
+                    status=503,
+                )
+                return
             try:
                 result = query(prompt)
                 page = render_page(prompt=prompt, result=result)
                 self._send_page(page)
             except RuntimeError as error:
-                self._send_page(render_page(prompt=prompt, error=str(error)), status=502)
+                self._send_page(
+                    render_page(
+                        prompt=prompt,
+                        error=str(error),
+                        technical_details=getattr(error, "technical_details", None),
+                    ),
+                    status=502,
+                )
+
+        def _send_json(self, payload: dict[str, str], status: int) -> None:
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
 
         def _send_page(self, body: bytes, status: int = 200) -> None:
             self.send_response(status)
@@ -174,7 +259,10 @@ def make_handler(query: Callable[[str], QueryResult]) -> type[BaseHTTPRequestHan
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     with OrchestratorGrpcClient(args.target, args.timeout_seconds) as client:
-        server = ThreadingHTTPServer((args.host, args.port), make_handler(client.query))
+        server = ThreadingHTTPServer(
+            (args.host, args.port),
+            make_handler(client.query, lambda: client.is_ready(timeout_seconds=0.5)),
+        )
         print(f"Web client: http://{args.host}:{args.port}")
         print(f"Orchestrator: {args.target}")
         try:
