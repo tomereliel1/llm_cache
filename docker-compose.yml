@@ -1,21 +1,34 @@
+x-app-image: &app-image
+  image: llm-cache:local
+
 services:
   embedding-service:
-    build: .
+    <<: *app-image
     command: python -m llm_cache.embedding.grpc.server --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
     extra_hosts:
       - host.docker.internal:host-gateway
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50051), 2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   vector-store-service:
-    build: .
+    <<: *app-image
     command: python -m llm_cache.vector_store.grpc.server --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
       - chroma_data:/data/chroma
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50052), 2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   llm-service:
-    build: .
+    <<: *app-image
     command: python -m llm_cache.llm.grpc.server --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
@@ -23,27 +36,59 @@ services:
       - host.docker.internal:host-gateway
     environment:
       GROQ_API_KEY: ${GROQ_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50053), 2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   orchestrator:
-    build: .
+    <<: *app-image
     command: python -m llm_cache.orchestrator.grpc.server --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
     ports:
       - "50050:50050"
     depends_on:
-      - embedding-service
-      - vector-store-service
-      - llm-service
+      embedding-service:
+        condition: service_healthy
+      vector-store-service:
+        condition: service_healthy
+      llm-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50050), 2).close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   client:
+    <<: *app-image
     build: .
-    command: python -m llm_cache.cli.main --config /app/configs/configuration.json
+    command: python main.py web --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
-    profiles: [client]
+    ports:
+      - "8080:8080"
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://localhost:8080/health', timeout=2); response.read(); response.close()"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  cli-client:
+    <<: *app-image
+    build: .
+    command: python main.py cli --config /app/configs/configuration.json
+    profiles: [cli]
+    volumes:
+      - ./configs/configuration.json:/app/configs/configuration.json:ro
+    depends_on:
+      orchestrator:
+        condition: service_healthy
     stdin_open: true
     tty: true
 

@@ -7,6 +7,7 @@ import grpc
 
 from llm_cache.embedding.grpc.generated import embedding_pb2, embedding_pb2_grpc
 from llm_cache.embedding.interface import IEmbedder
+from llm_cache.errors import ProviderUnavailableError
 
 
 class EmbeddingGrpcClient(IEmbedder):
@@ -31,6 +32,10 @@ class EmbeddingGrpcClient(IEmbedder):
             reply = self._stub.Embed(request, timeout=self._timeout_seconds)
         except grpc.RpcError as error:
             code = error.code()
+            if code is grpc.StatusCode.UNAVAILABLE:
+                raise ProviderUnavailableError(
+                    "Embedding", self._target, error.details()
+                ) from error
             code_name = code.name if code is not None else code
             raise RuntimeError(
                 f"Embedding gRPC call failed: {code_name}: {error.details()}"

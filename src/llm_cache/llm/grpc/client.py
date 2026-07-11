@@ -5,6 +5,7 @@ from typing import Self
 
 import grpc
 
+from llm_cache.errors import ProviderUnavailableError
 from llm_cache.llm.grpc.generated import llm_pb2, llm_pb2_grpc
 from llm_cache.llm.interface import ILLMProvider
 
@@ -31,6 +32,8 @@ class LLMGrpcClient(ILLMProvider):
             reply = self._stub.Generate(request, timeout=self._timeout_seconds)
         except grpc.RpcError as error:
             code = error.code()
+            if code is grpc.StatusCode.UNAVAILABLE:
+                raise ProviderUnavailableError("LLM", self._target, error.details()) from error
             code_name = code.name if code is not None else code
             raise RuntimeError(f"LLM gRPC call failed: {code_name}: {error.details()}") from error
 

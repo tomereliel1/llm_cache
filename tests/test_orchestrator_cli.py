@@ -1,3 +1,5 @@
+import json
+
 from llm_cache.cli.main import parse_args, run_prompt_loop
 from llm_cache.orchestrator import QueryResult
 from llm_cache.orchestrator.grpc import server as orchestrator_server
@@ -20,6 +22,26 @@ def test_client_args_parse_target_and_timeout():
     args = parse_args(["--target", "server:123", "--timeout-seconds", "2"])
     assert args.target == "server:123"
     assert args.timeout_seconds == 2
+
+
+def test_client_args_load_from_cli_client_config_section(tmp_path):
+    config_path = tmp_path / "configuration.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "cli_client": {
+                    "target": "orchestrator:50050",
+                    "timeout_seconds": 300.0,
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = parse_args(["--config", str(config_path)])
+
+    assert args.target == "orchestrator:50050"
+    assert args.timeout_seconds == 300.0
 
 
 def test_prompt_loop_ignores_blank_and_exits(capsys):

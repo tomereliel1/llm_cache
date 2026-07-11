@@ -5,6 +5,7 @@ from typing import Self
 
 import grpc
 
+from llm_cache.orchestrator.errors import OrchestratorClientError
 from llm_cache.orchestrator.grpc.generated import orchestrator_pb2, orchestrator_pb2_grpc
 from llm_cache.orchestrator.orchestrator import QueryResult
 
@@ -31,12 +32,34 @@ class OrchestratorGrpcClient:
             )
         except grpc.RpcError as error:
             code = error.code()
+            if code is grpc.StatusCode.UNAVAILABLE:
+                details = error.details()
+                metadata = dict(error.trailing_metadata() or ())
+                technical_details = metadata.get("technical-details-bin")
+                if isinstance(technical_details, bytes):
+                    technical_details = technical_details.decode("utf-8", errors="replace")
+                if technical_details:
+                    raise OrchestratorClientError(
+                        details, technical_details=technical_details
+                    ) from error
+                raise OrchestratorClientError(
+                    "Orchestrator service is unavailable. Please try again later.",
+                    technical_details=f"gRPC status: UNAVAILABLE\nDetails: {details}",
+                ) from error
             code_name = code.name if code is not None else code
             raise RuntimeError(
                 f"Orchestrator gRPC call failed: {code_name}: {error.details()}"
             ) from error
 
         return QueryResult(response=reply.response, cache_hit=reply.cache_hit)
+
+    def is_ready(self, timeout_seconds: float = 1.0) -> bool:
+        """Return whether the orchestrator channel becomes ready before the timeout."""
+        try:
+            grpc.channel_ready_future(self._channel).result(timeout=timeout_seconds)
+        except grpc.FutureTimeoutError:
+            return False
+        return True
 
     def close(self) -> None:
         if self._owns_channel:

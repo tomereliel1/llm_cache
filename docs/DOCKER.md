@@ -1,7 +1,8 @@
 # Running the distributed cache with Docker
 
-Docker Compose starts the embedding, vector-store, LLM, and orchestrator gRPC services as
-one stack. The existing local commands and flags still work; Docker is an additional workflow.
+Docker Compose starts the web client, embedding, vector-store, LLM, and orchestrator gRPC
+services as one stack. The existing local commands and flags still work; Docker is an
+additional workflow.
 
 ## Recommended: use Ollama on the host
 
@@ -20,14 +21,12 @@ cp configs/configuration_docker_example.json configs/configuration.json
 docker compose up --build
 ```
 
-In a second terminal, start the interactive client:
+Open `http://127.0.0.1:8080`. Enter a prompt twice: the first response should show
+`Fresh response`, and the exact repeated prompt should show `Cache hit`.
 
-```bash
-docker compose run --rm client
-```
-
-Enter a prompt twice. The first response should show `Cache hit: false`; the exact repeated
-prompt should show `Cache hit: true`. Type `exit` to leave the client.
+Compose health checks start the orchestrator only after its three provider ports are ready,
+then start the web client after the orchestrator is ready. The page also polls `/health` and
+keeps prompt submission disabled whenever the orchestrator is unavailable.
 
 The Docker example configuration is committed as a safe template. `configuration.json` is
 ignored by Git so each machine can use different addresses and providers without committing
@@ -38,6 +37,35 @@ Explicit command-line flags override JSON values, so manual development remains 
 uv run python -m llm_cache.llm.grpc.server --host localhost --port 50053 \
   --provider ollama --model gemma3:4b
 uv run python main.py --target localhost:50050
+uv run python main.py cli --target localhost:50050
+```
+
+`main.py` defaults to the web client. Use `main.py web` when you want to be explicit, or
+`main.py cli` for the terminal prompt loop.
+
+The Docker configuration has separate client sections:
+
+```json
+"web_client": {
+  "target": "orchestrator:50050",
+  "timeout_seconds": 300.0,
+  "host": "0.0.0.0",
+  "port": 8080
+},
+"cli_client": {
+  "target": "orchestrator:50050",
+  "timeout_seconds": 300.0
+}
+```
+
+Inside Compose, both clients run in containers, so their orchestrator target is the Compose
+service name `orchestrator:50050`. When running a client directly on the host, use
+`localhost:50050` because Compose publishes the orchestrator port to the host.
+
+To run the optional interactive CLI in Compose:
+
+```bash
+docker compose --profile cli run --rm cli-client
 ```
 
 When using Groq, keep the secret in the environment. The optional
@@ -57,7 +85,6 @@ docker compose --profile ollama up -d ollama
 docker compose exec ollama ollama pull embeddinggemma
 docker compose exec ollama ollama pull gemma3:4b
 docker compose --profile ollama up --build
-docker compose run --rm client
 ```
 
 ## Troubleshooting
@@ -69,7 +96,9 @@ docker compose run --rm client
   when using the profile).
 - Inside Compose, targets use service names such as `embedding-service:50051`; from the host,
   connect to the exposed orchestrator at `localhost:50050`.
+- If port 8080 is already in use, change the left side of `8080:8080` in
+  `docker-compose.yml`, for example `8081:8080`.
 - `docker compose down` preserves Chroma; `docker compose down -v` clears it.
 
-Host-Ollama mode normally needs three terminals only when `ollama serve` is not already running:
-one for Ollama, one for the backend, and one for the client. Compose-Ollama mode needs two.
+Host-Ollama mode needs two terminals when Ollama is not already running: one for Ollama and
+one for the Compose stack. Compose-Ollama mode needs one terminal after its models are pulled.

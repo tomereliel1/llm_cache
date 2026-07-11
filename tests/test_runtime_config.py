@@ -26,7 +26,8 @@ def test_example_configuration_loads(filename: str) -> None:
         "vector_store_service",
         "llm_service",
         "orchestrator_service",
-        "client",
+        "web_client",
+        "cli_client",
     }
 
 
@@ -43,7 +44,7 @@ def test_invalid_json_has_clear_error(tmp_path: Path) -> None:
 
 
 def test_missing_section_has_clear_error(tmp_path: Path) -> None:
-    path = write_config(tmp_path / "config.json", {"client": {}})
+    path = write_config(tmp_path / "config.json", {"web_client": {}})
     with pytest.raises(ConfigError, match="Missing required configuration section"):
         load_config_section(path, "llm_service")
 
@@ -78,7 +79,7 @@ def test_json_key_not_registered_by_parser_exits(tmp_path: Path) -> None:
 def test_explicit_cli_flag_overrides_json(tmp_path: Path) -> None:
     path = write_config(
         tmp_path / "config.json",
-        {"client": {"target": "from-config:50050"}},
+        {"cli_client": {"target": "from-config:50050"}},
     )
     args = parse_args(["--config", str(path), "--target", "from-cli:60000"])
     assert args.target == "from-cli:60000"

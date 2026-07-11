@@ -14,7 +14,8 @@ SECTIONS = {
     "vector_store_service",
     "llm_service",
     "orchestrator_service",
-    "client",
+    "web_client",
+    "cli_client",
 }
 
 
@@ -67,7 +68,7 @@ def load_config_section(path: str | Path, section_name: str) -> dict[str, Any]:
     Args:
         path: Path to the JSON configuration file.
         section_name: Name of the top-level section to retrieve, such as
-            ``"embedding_service"`` or ``"client"``.
+            ``"embedding_service"`` or ``"web_client"``.
 
     Returns:
         The settings stored in the requested section.
@@ -214,5 +215,6 @@ def _validate_common_values(section_name: str, values: Mapping[str, Any]) -> Non
             "llm_target",
             "orchestrator_target",
             "groq_api_key_env",
+            "target",
         } and (not isinstance(value, str) or not value.strip()):
             raise ConfigError(f"{section_name}.{key} must be a non-empty string")
