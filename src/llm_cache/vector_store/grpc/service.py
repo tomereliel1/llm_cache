@@ -2,6 +2,11 @@ from concurrent import futures
 
 import grpc
 
+from llm_cache.request_context import (
+    new_request_id,
+    request_context,
+    request_id_from_grpc_context,
+)
 from llm_cache.vector_store.grpc.generated.vector_store_pb2 import (
     SearchSimilarReply,
     SearchSimilarRequest,
@@ -26,10 +31,12 @@ class VectorStoreGrpcService(VectorStoreServiceServicer):
         request: SearchSimilarRequest,
         context: grpc.ServicerContext,
     ) -> SearchSimilarReply:
-        try:
-            result = self._vector_store.search_similar(list(request.vector))
-        except ValueError as error:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        request_id = request_id_from_grpc_context(context) or new_request_id()
+        with request_context(request_id):
+            try:
+                result = self._vector_store.search_similar(list(request.vector))
+            except ValueError as error:
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
 
         return SearchSimilarReply(
             found=result.found,
@@ -42,14 +49,16 @@ class VectorStoreGrpcService(VectorStoreServiceServicer):
         request: StoreRequest,
         context: grpc.ServicerContext,
     ) -> StoreReply:
-        try:
-            self._vector_store.store(
-                prompt=request.prompt,
-                response=request.response,
-                vector=list(request.vector),
-            )
-        except ValueError as error:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
+        request_id = request_id_from_grpc_context(context) or new_request_id()
+        with request_context(request_id):
+            try:
+                self._vector_store.store(
+                    prompt=request.prompt,
+                    response=request.response,
+                    vector=list(request.vector),
+                )
+            except ValueError as error:
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
 
         return StoreReply(success=True)
 

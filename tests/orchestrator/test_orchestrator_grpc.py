@@ -18,6 +18,7 @@ from llm_cache.orchestrator import (
 from llm_cache.orchestrator.grpc.generated import orchestrator_pb2, orchestrator_pb2_grpc
 from llm_cache.orchestrator.grpc.server import create_orchestrator_server
 from llm_cache.orchestrator.grpc.service import OrchestratorGrpcService
+from llm_cache.request_context import get_current_request_id
 from llm_cache.test_doubles import EmbedderStub, LLMProviderSpy
 from llm_cache.vector_store import InMemoryVectorStore
 from llm_cache.vector_store.grpc.client import VectorStoreGrpcClient
@@ -36,6 +37,40 @@ class RecordingOrchestrator:
         from llm_cache.orchestrator import QueryResult
 
         return QueryResult("answer", True)
+
+
+class RequestIdRecordingEmbedder:
+    def __init__(self) -> None:
+        self.request_ids = []
+
+    def embed(self, prompt):
+        self.request_ids.append(get_current_request_id())
+        return [1.0, 0.0]
+
+
+class RequestIdRecordingLLMProvider:
+    def __init__(self) -> None:
+        self.request_ids = []
+        self.calls_count = 0
+
+    def generate_answer(self, prompt):
+        self.request_ids.append(get_current_request_id())
+        self.calls_count += 1
+        return "answer from remote LLM"
+
+
+class RequestIdRecordingVectorStore:
+    def __init__(self) -> None:
+        self.request_ids_by_operation = []
+        self._vector_store = InMemoryVectorStore(similarity_threshold=0.8)
+
+    def search_similar(self, vector):
+        self.request_ids_by_operation.append(("search", get_current_request_id()))
+        return self._vector_store.search_similar(vector)
+
+    def store(self, prompt, response, vector):
+        self.request_ids_by_operation.append(("store", get_current_request_id()))
+        return self._vector_store.store(prompt, response, vector)
 
 
 @pytest.fixture
@@ -68,15 +103,17 @@ def test_public_grpc_service_observes_miss_then_hit(grpc_target):
 
 
 def test_fully_distributed_grpc_chain_observes_miss_then_hit():
-    llm = LLMProviderSpy(answer="answer from remote LLM")
+    embedder = RequestIdRecordingEmbedder()
+    vector_store = RequestIdRecordingVectorStore()
+    llm = RequestIdRecordingLLMProvider()
     embedding_server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
     embedding_pb2_grpc.add_EmbeddingServiceServicer_to_server(
-        EmbeddingGrpcService(EmbedderStub(vector=[1.0, 0.0])), embedding_server
+        EmbeddingGrpcService(embedder), embedding_server
     )
     embedding_port = embedding_server.add_insecure_port("localhost:0")
 
     vector_server = create_vector_store_grpc_server(
-        InMemoryVectorStore(similarity_threshold=0.8), max_workers=2
+        vector_store, max_workers=2
     )
     vector_port = vector_server.add_insecure_port("localhost:0")
 
@@ -109,6 +146,11 @@ def test_fully_distributed_grpc_chain_observes_miss_then_hit():
     assert second.cache_hit is True
     assert second.response == "answer from remote LLM"
     assert llm.calls_count == 1
+    assert embedder.request_ids[0] == vector_store.request_ids_by_operation[0][1]
+    assert embedder.request_ids[0] == llm.request_ids[0]
+    assert embedder.request_ids[0] == vector_store.request_ids_by_operation[1][1]
+    assert embedder.request_ids[1] == vector_store.request_ids_by_operation[2][1]
+    assert embedder.request_ids[0] != embedder.request_ids[1]
 
 
 @pytest.mark.parametrize(

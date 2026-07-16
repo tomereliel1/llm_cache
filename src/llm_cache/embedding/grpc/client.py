@@ -8,6 +8,7 @@ import grpc
 from llm_cache.embedding.grpc.generated import embedding_pb2, embedding_pb2_grpc
 from llm_cache.embedding.interface import IEmbedder
 from llm_cache.errors import ProviderUnavailableError
+from llm_cache.request_context import grpc_metadata_for_current_request
 
 
 class EmbeddingGrpcClient(IEmbedder):
@@ -27,12 +28,20 @@ class EmbeddingGrpcClient(IEmbedder):
 
     def embed(self, prompt: str) -> list[float]:
         request = embedding_pb2.EmbedRequest(prompt=prompt)
+        metadata = grpc_metadata_for_current_request()
 
         try:
-            reply = self._stub.Embed(request, timeout=self._timeout_seconds)
+            if metadata is None:
+                reply = self._stub.Embed(request, timeout=self._timeout_seconds)
+            else:
+                reply = self._stub.Embed(
+                    request,
+                    timeout=self._timeout_seconds,
+                    metadata=metadata,
+                )
         except grpc.RpcError as error:
             code = error.code()
-            if code is grpc.StatusCode.UNAVAILABLE:
+            if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED):
                 raise ProviderUnavailableError(
                     "Embedding", self._target, error.details()
                 ) from error

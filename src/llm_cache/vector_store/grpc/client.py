@@ -6,6 +6,7 @@ from typing import Self
 import grpc
 
 from llm_cache.errors import ProviderUnavailableError
+from llm_cache.request_context import grpc_metadata_for_current_request
 from llm_cache.vector_store.grpc.generated import vector_store_pb2, vector_store_pb2_grpc
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
 
@@ -27,9 +28,17 @@ class VectorStoreGrpcClient(IVectorStore):
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
         request = vector_store_pb2.SearchSimilarRequest(vector=vector)
+        metadata = grpc_metadata_for_current_request()
 
         try:
-            reply = self._stub.SearchSimilar(request, timeout=self._timeout_seconds)
+            if metadata is None:
+                reply = self._stub.SearchSimilar(request, timeout=self._timeout_seconds)
+            else:
+                reply = self._stub.SearchSimilar(
+                    request,
+                    timeout=self._timeout_seconds,
+                    metadata=metadata,
+                )
         except grpc.RpcError as error:
             raise self._grpc_error("Vector store search gRPC call failed", error) from error
 
@@ -45,9 +54,17 @@ class VectorStoreGrpcClient(IVectorStore):
             response=response,
             vector=vector,
         )
+        metadata = grpc_metadata_for_current_request()
 
         try:
-            reply = self._stub.Store(request, timeout=self._timeout_seconds)
+            if metadata is None:
+                reply = self._stub.Store(request, timeout=self._timeout_seconds)
+            else:
+                reply = self._stub.Store(
+                    request,
+                    timeout=self._timeout_seconds,
+                    metadata=metadata,
+                )
         except grpc.RpcError as error:
             raise self._grpc_error("Vector store store gRPC call failed", error) from error
 
@@ -73,7 +90,7 @@ class VectorStoreGrpcClient(IVectorStore):
 
     def _grpc_error(self, message: str, error: grpc.RpcError) -> RuntimeError:
         code = error.code()
-        if code is grpc.StatusCode.UNAVAILABLE:
+        if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED):
             return ProviderUnavailableError("Vector store", self._target, error.details())
         code_name = code.name if code is not None else code
         return RuntimeError(f"{message}: {code_name}: {error.details()}")
