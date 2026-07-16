@@ -10,6 +10,7 @@ from llm_cache.health import all_healthy, format_health_report, run_health_check
 from llm_cache.llm import ILLMProvider
 from llm_cache.llm.grpc.generated import llm_pb2_grpc
 from llm_cache.llm.grpc.service import LLMGrpcService
+from llm_cache.logging_config import configure_logging
 from llm_cache.server_output import print_server_started
 
 
@@ -27,6 +28,7 @@ def create_llm_server(
 
 def main(argv: list[str] | None = None) -> int:
     config = parse_llm_server_args(argv)
+    configure_logging("llm-service")
     llm_provider = create_llm_provider(config.llm)
 
     if config.check_setup:

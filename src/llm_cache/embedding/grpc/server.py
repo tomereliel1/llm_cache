@@ -10,6 +10,7 @@ from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
 from llm_cache.embedding.grpc.service import EmbeddingGrpcService
 from llm_cache.factories import create_embedder
 from llm_cache.health import all_healthy, format_health_report, run_health_checks
+from llm_cache.logging_config import configure_logging
 from llm_cache.server_output import print_server_started
 
 
@@ -27,6 +28,7 @@ def create_embedding_server(
 
 def main(argv: list[str] | None = None) -> int:
     config = parse_embedding_server_args(argv)
+    configure_logging("embedding-service")
 
     embedder = create_embedder(config.embedding)
 

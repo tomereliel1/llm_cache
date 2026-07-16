@@ -5,12 +5,14 @@ import sys
 from llm_cache.config import ConfigError
 from llm_cache.config.vector_store_server_cli_args import parse_vector_store_server_args
 from llm_cache.factories.vector_store_factory import create_vector_store
+from llm_cache.logging_config import configure_logging
 from llm_cache.server_output import print_server_started
 from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
 
 def main(argv: list[str] | None = None) -> int:
     config = parse_vector_store_server_args(argv)
+    configure_logging("vector-store-service")
     try:
         vector_store = create_vector_store(config.vector_store)
     except ConfigError as error:

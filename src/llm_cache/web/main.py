@@ -3,14 +3,19 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import logging
 from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
 from llm_cache.config.runtime_config import apply_config_defaults
+from llm_cache.logging_config import configure_logging
 from llm_cache.orchestrator import OrchestratorGrpcClient, QueryResult
+from llm_cache.request_context import new_request_id, request_context
 
 MAX_REQUEST_BYTES = 64 * 1024
+
+logger = logging.getLogger(__name__)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -217,19 +222,24 @@ def make_handler(
                     status=503,
                 )
                 return
-            try:
-                result = query(prompt)
-                page = render_page(prompt=prompt, result=result)
-                self._send_page(page)
-            except RuntimeError as error:
-                self._send_page(
-                    render_page(
-                        prompt=prompt,
-                        error=str(error),
-                        technical_details=getattr(error, "technical_details", None),
-                    ),
-                    status=502,
-                )
+            request_id = new_request_id()
+            with request_context(request_id):
+                try:
+                    logger.info("web_prompt_received prompt_length=%s", len(prompt))
+                    result = query(prompt)
+                    logger.info("web_prompt_completed cache_hit=%s", result.cache_hit)
+                    page = render_page(prompt=prompt, result=result)
+                    self._send_page(page)
+                except RuntimeError as error:
+                    logger.exception("web_prompt_failed")
+                    self._send_page(
+                        render_page(
+                            prompt=prompt,
+                            error=str(error),
+                            technical_details=getattr(error, "technical_details", None),
+                        ),
+                        status=502,
+                    )
 
         def _send_json(self, payload: dict[str, str], status: int) -> None:
             body = json.dumps(payload).encode("utf-8")
@@ -256,6 +266,7 @@ def make_handler(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    configure_logging("web-client")
     with OrchestratorGrpcClient(args.target, args.timeout_seconds) as client:
         server = ThreadingHTTPServer(
             (args.host, args.port),
