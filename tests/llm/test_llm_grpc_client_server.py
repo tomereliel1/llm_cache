@@ -7,7 +7,7 @@ from contextlib import contextmanager
 import grpc
 import pytest
 
-from llm_cache.errors import ProviderUnavailableError
+from llm_cache.errors import ProviderTimeoutError, ProviderUnavailableError
 from llm_cache.llm import ILLMProvider
 from llm_cache.llm.grpc.client import LLMGrpcClient
 from llm_cache.llm.grpc.generated import llm_pb2_grpc
@@ -21,6 +21,32 @@ class RecordingStub:
     def Generate(self, request, timeout: float):
         self.timeout = timeout
         return type("Reply", (), {"response": "answer"})()
+
+
+class DeadlineExceededError(grpc.RpcError):
+    def code(self):
+        return grpc.StatusCode.DEADLINE_EXCEEDED
+
+    def details(self):
+        return "deadline exceeded"
+
+
+class UnavailableError(grpc.RpcError):
+    def code(self):
+        return grpc.StatusCode.UNAVAILABLE
+
+    def details(self):
+        return "connection refused"
+
+
+class DeadlineExceededStub:
+    def Generate(self, request, timeout: float):
+        raise DeadlineExceededError()
+
+
+class UnavailableStub:
+    def Generate(self, request, timeout: float):
+        raise UnavailableError()
 
 
 class RecordingLLMProvider(ILLMProvider):
@@ -98,12 +124,34 @@ def test_llm_grpc_client_translates_internal_error() -> None:
 
 
 def test_llm_grpc_client_translates_unavailable_server_error() -> None:
-    with LLMGrpcClient(target="localhost:1", timeout_seconds=0.1) as client:
+    client = LLMGrpcClient(target="localhost:1", timeout_seconds=0.1)
+    client._stub = UnavailableStub()
+
+    try:
         with pytest.raises(
             ProviderUnavailableError,
             match=r"^LLM service is unavailable\.",
         ) as exc_info:
             client.generate_answer("hello")
+    finally:
+        client.close()
 
     assert exc_info.value.technical_details is not None
     assert "gRPC status: UNAVAILABLE" in exc_info.value.technical_details
+
+
+def test_llm_grpc_client_translates_deadline_exceeded_error() -> None:
+    client = LLMGrpcClient(target="localhost:50053", timeout_seconds=0.5)
+    client._stub = DeadlineExceededStub()
+
+    try:
+        with pytest.raises(
+            ProviderTimeoutError,
+            match=r"Increase the provider timeout using --provider-timeout-seconds",
+        ) as exc_info:
+            client.generate_answer("hello")
+    finally:
+        client.close()
+
+    assert "gRPC status: DEADLINE_EXCEEDED" in exc_info.value.technical_details
+    assert "Timeout seconds: 0.5" in exc_info.value.technical_details

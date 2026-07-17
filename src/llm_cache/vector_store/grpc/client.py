@@ -5,7 +5,7 @@ from typing import Self
 
 import grpc
 
-from llm_cache.errors import ProviderUnavailableError
+from llm_cache.errors import ProviderTimeoutError, ProviderUnavailableError
 from llm_cache.request_context import grpc_metadata_for_current_request
 from llm_cache.vector_store.grpc.generated import vector_store_pb2, vector_store_pb2_grpc
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
@@ -90,7 +90,14 @@ class VectorStoreGrpcClient(IVectorStore):
 
     def _grpc_error(self, message: str, error: grpc.RpcError) -> RuntimeError:
         code = error.code()
-        if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED):
+        if code is grpc.StatusCode.UNAVAILABLE:
             return ProviderUnavailableError("Vector store", self._target, error.details())
+        if code is grpc.StatusCode.DEADLINE_EXCEEDED:
+            return ProviderTimeoutError(
+                "Vector store",
+                self._target,
+                error.details(),
+                self._timeout_seconds,
+            )
         code_name = code.name if code is not None else code
         return RuntimeError(f"{message}: {code_name}: {error.details()}")

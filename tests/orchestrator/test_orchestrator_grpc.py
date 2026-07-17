@@ -7,7 +7,7 @@ import pytest
 from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
 from llm_cache.embedding.grpc.generated import embedding_pb2_grpc
 from llm_cache.embedding.grpc.service import EmbeddingGrpcService
-from llm_cache.errors import ProviderUnavailableError
+from llm_cache.errors import ProviderTimeoutError, ProviderUnavailableError
 from llm_cache.llm.grpc.client import LLMGrpcClient
 from llm_cache.llm.grpc.generated import llm_pb2_grpc
 from llm_cache.llm.grpc.service import LLMGrpcService
@@ -161,6 +161,10 @@ def test_fully_distributed_grpc_chain_observes_miss_then_hit():
             ProviderUnavailableError("LLM", "llm-service:50053", "DNS failure"),
             grpc.StatusCode.UNAVAILABLE,
         ),
+        (
+            ProviderTimeoutError("LLM", "llm-service:50053", "deadline exceeded", 0.5),
+            grpc.StatusCode.DEADLINE_EXCEEDED,
+        ),
         (RuntimeError("secret detail"), grpc.StatusCode.INTERNAL),
     ],
 )
@@ -185,6 +189,13 @@ def test_service_maps_orchestrator_errors(error, expected_code):
             exc_info.value.details()
             == "LLM service is unavailable. Check that it is running and reachable, "
             "then try again."
+        )
+    elif expected_code is grpc.StatusCode.DEADLINE_EXCEEDED:
+        assert (
+            exc_info.value.details()
+            == "LLM service did not respond within 0.5 seconds. Increase the provider "
+            "timeout using --provider-timeout-seconds or the provider_timeout_seconds "
+            "JSON field, then try again."
         )
     elif expected_code is grpc.StatusCode.INTERNAL:
         assert exc_info.value.details() == "Failed to process query: secret detail"
@@ -211,6 +222,31 @@ def test_public_client_preserves_clear_llm_unavailable_error() -> None:
         assert "Provider: LLM" in exc_info.value.technical_details
         assert "Target: llm-service:50053" in exc_info.value.technical_details
         assert "Details: DNS failure" in exc_info.value.technical_details
+    finally:
+        server.stop(grace=0)
+
+
+def test_public_client_preserves_clear_provider_timeout_error() -> None:
+    orchestrator = RecordingOrchestrator(
+        ProviderTimeoutError("LLM", "llm-service:50053", "deadline exceeded", 0.5)
+    )
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    orchestrator_pb2_grpc.add_OrchestratorServiceServicer_to_server(
+        OrchestratorGrpcService(orchestrator), server
+    )
+    port = server.add_insecure_port("localhost:0")
+    server.start()
+
+    try:
+        with OrchestratorGrpcClient(f"localhost:{port}") as client:
+            with pytest.raises(
+                RuntimeError,
+                match=r"^LLM service did not respond within 0\.5 seconds\.",
+            ) as exc_info:
+                client.query("hello")
+        assert "Provider: LLM" in exc_info.value.technical_details
+        assert "gRPC status: DEADLINE_EXCEEDED" in exc_info.value.technical_details
+        assert "Timeout seconds: 0.5" in exc_info.value.technical_details
     finally:
         server.stop(grace=0)
 

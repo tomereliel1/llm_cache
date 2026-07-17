@@ -4,7 +4,7 @@ import logging
 
 import grpc
 
-from llm_cache.errors import ProviderUnavailableError
+from llm_cache.errors import ProviderTimeoutError, ProviderUnavailableError
 from llm_cache.orchestrator.grpc.generated import orchestrator_pb2, orchestrator_pb2_grpc
 from llm_cache.orchestrator.orchestrator import CacheOrchestrator
 from llm_cache.request_context import (
@@ -46,6 +46,13 @@ class OrchestratorGrpcService(orchestrator_pb2_grpc.OrchestratorServiceServicer)
                         (("technical-details-bin", error.technical_details.encode("utf-8")),)
                     )
                 context.abort(grpc.StatusCode.UNAVAILABLE, str(error))
+            except ProviderTimeoutError as error:
+                logger.warning("submit_prompt_provider_timeout error=%s", error)
+                if error.technical_details:
+                    context.set_trailing_metadata(
+                        (("technical-details-bin", error.technical_details.encode("utf-8")),)
+                    )
+                context.abort(grpc.StatusCode.DEADLINE_EXCEEDED, str(error))
             except RuntimeError as error:
                 logger.exception("submit_prompt_runtime_error")
                 # Provider gRPC clients use RuntimeError to preserve the failing

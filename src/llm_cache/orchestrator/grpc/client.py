@@ -43,7 +43,7 @@ class OrchestratorGrpcClient:
             )
         except grpc.RpcError as error:
             code = error.code()
-            if code is grpc.StatusCode.UNAVAILABLE:
+            if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED):
                 details = error.details()
                 metadata = dict(error.trailing_metadata() or ())
                 technical_details = metadata.get("technical-details-bin")
@@ -52,6 +52,11 @@ class OrchestratorGrpcClient:
                 if technical_details:
                     raise OrchestratorClientError(
                         details, technical_details=technical_details
+                    ) from error
+                if code is grpc.StatusCode.DEADLINE_EXCEEDED:
+                    raise OrchestratorClientError(
+                        details,
+                        technical_details=f"gRPC status: DEADLINE_EXCEEDED\nDetails: {details}",
                     ) from error
                 raise OrchestratorClientError(
                     "Orchestrator service is unavailable. Please try again later.",
