@@ -87,6 +87,9 @@ uv run python -m llm_cache.web.main --target localhost:50050
 The old terminal client remains available as `python -m llm_cache.cli.main`. Stop the web
 client and each server with Ctrl+C.
 
+To inspect the request flow, cache hits/misses, and gRPC `request_id` propagation, see
+`docs/LOGGING.md`.
+
 ## Request path
 
 ```text

@@ -8,6 +8,12 @@ import grpc
 from llm_cache.orchestrator.errors import OrchestratorClientError
 from llm_cache.orchestrator.grpc.generated import orchestrator_pb2, orchestrator_pb2_grpc
 from llm_cache.orchestrator.orchestrator import QueryResult
+from llm_cache.request_context import (
+    get_current_request_id,
+    grpc_metadata_for_current_request,
+    new_request_id,
+    request_context,
+)
 
 
 class OrchestratorGrpcClient:
@@ -25,14 +31,19 @@ class OrchestratorGrpcClient:
         self._stub = orchestrator_pb2_grpc.OrchestratorServiceStub(self._channel)
 
     def query(self, prompt: str) -> QueryResult:
+        if get_current_request_id() is None:
+            with request_context(new_request_id()):
+                return self.query(prompt)
+
         try:
             reply = self._stub.SubmitPrompt(
                 orchestrator_pb2.SubmitPromptRequest(prompt=prompt),
                 timeout=self._timeout_seconds,
+                metadata=grpc_metadata_for_current_request(),
             )
         except grpc.RpcError as error:
             code = error.code()
-            if code is grpc.StatusCode.UNAVAILABLE:
+            if code in (grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.DEADLINE_EXCEEDED):
                 details = error.details()
                 metadata = dict(error.trailing_metadata() or ())
                 technical_details = metadata.get("technical-details-bin")
@@ -41,6 +52,11 @@ class OrchestratorGrpcClient:
                 if technical_details:
                     raise OrchestratorClientError(
                         details, technical_details=technical_details
+                    ) from error
+                if code is grpc.StatusCode.DEADLINE_EXCEEDED:
+                    raise OrchestratorClientError(
+                        details,
+                        technical_details=f"gRPC status: DEADLINE_EXCEEDED\nDetails: {details}",
                     ) from error
                 raise OrchestratorClientError(
                     "Orchestrator service is unavailable. Please try again later.",

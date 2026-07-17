@@ -9,6 +9,7 @@ import grpc
 from llm_cache.config.runtime_config import apply_config_defaults
 from llm_cache.embedding.grpc.client import EmbeddingGrpcClient
 from llm_cache.llm.grpc.client import LLMGrpcClient
+from llm_cache.logging_config import configure_logging
 from llm_cache.orchestrator import CacheOrchestrator
 from llm_cache.orchestrator.grpc.generated import orchestrator_pb2_grpc
 from llm_cache.orchestrator.grpc.service import OrchestratorGrpcService
@@ -106,6 +107,7 @@ def check_provider_targets(
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_orchestrator_server_args(argv)
+    configure_logging("orchestrator")
     providers = [
         ("Embedding", args.embedding_target),
         ("Vector-store", args.vector_store_target),
