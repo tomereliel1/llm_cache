@@ -27,11 +27,12 @@ class OrchestratorGrpcService(orchestrator_pb2_grpc.OrchestratorServiceServicer)
         request: orchestrator_pb2.SubmitPromptRequest,
         context: grpc.ServicerContext,
     ) -> orchestrator_pb2.SubmitPromptReply:
-        if not request.prompt or not request.prompt.strip():
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Prompt must not be empty.")
-
         request_id = request_id_from_grpc_context(context) or new_request_id()
         with request_context(request_id):
+            if not request.prompt or not request.prompt.strip():
+                logger.warning("submit_prompt_invalid error=Prompt must not be empty.")
+                context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Prompt must not be empty.")
+
             logger.info("submit_prompt_received prompt_length=%s", len(request.prompt.strip()))
             try:
                 result = self._orchestrator.query(request.prompt)
