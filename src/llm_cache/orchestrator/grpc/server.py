@@ -61,7 +61,7 @@ def parse_orchestrator_server_args(argv: list[str] | None = None) -> argparse.Na
     parser.add_argument(
         "--check-setup",
         action="store_true",
-        help="Check that all three provider gRPC targets are reachable, then exit.",
+        help="Check that all three provider gRPC targets are reachable before starting.",
     )
     apply_config_defaults(
         parser,
@@ -113,8 +113,11 @@ def main(argv: list[str] | None = None) -> int:
         ("Vector-store", args.vector_store_target),
         ("LLM", args.llm_target),
     ]
-    if args.check_setup:
-        return 0 if check_provider_targets(providers, args.provider_timeout_seconds) else 1
+    if args.check_setup and not check_provider_targets(
+        providers,
+        args.provider_timeout_seconds,
+    ):
+        return 1
 
     with ExitStack() as stack:
         embedder = stack.enter_context(
