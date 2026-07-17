@@ -5,6 +5,7 @@ import sys
 from llm_cache.config import ConfigError
 from llm_cache.config.vector_store_server_cli_args import parse_vector_store_server_args
 from llm_cache.factories.vector_store_factory import create_vector_store
+from llm_cache.health import all_healthy, format_health_report, run_health_checks
 from llm_cache.logging_config import configure_logging
 from llm_cache.server_output import print_server_started
 from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
@@ -18,6 +19,12 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as error:
         print(f"Configuration error: {error}", file=sys.stderr)
         return 2
+
+    if config.check_setup:
+        results = run_health_checks([vector_store])
+        print(format_health_report(results))
+        if not all_healthy(results):
+            return 1
 
     server = create_vector_store_grpc_server(vector_store, max_workers=config.max_workers)
     address = f"{config.host}:{config.port}"

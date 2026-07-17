@@ -22,6 +22,7 @@ def test_parse_vector_store_server_args_uses_shared_defaults() -> None:
     assert config.host == DEFAULT_VECTOR_STORE_SERVER_HOST
     assert config.port == DEFAULT_VECTOR_STORE_SERVER_PORT
     assert config.max_workers == DEFAULT_VECTOR_STORE_SERVER_MAX_WORKERS
+    assert config.check_setup is False
     assert config.vector_store.provider == DEFAULT_VECTOR_STORE_PROVIDER
     assert config.vector_store.similarity_threshold == DEFAULT_SIMILARITY_THRESHOLD
     assert config.vector_store.persist_path == DEFAULT_VECTOR_STORE_PATH
@@ -51,12 +52,14 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
             "lru",
             "--workers",
             "3",
+            "--check-setup",
         ]
     )
 
     assert config.host == "127.0.0.1"
     assert config.port == 60000
     assert config.max_workers == 3
+    assert config.check_setup is True
     assert config.vector_store.provider == "in-memory"
     assert config.vector_store.similarity_threshold == 0.9
     assert config.vector_store.persist_path == ".cache/custom"

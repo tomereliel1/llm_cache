@@ -120,6 +120,44 @@ def test_rejects_invalid_max_capacity(tmp_path) -> None:
         ChromaVectorStore(max_capacity=0, persist_path=str(tmp_path))
 
 
+def test_health_check_is_healthy_and_does_not_touch_entries(tmp_path) -> None:
+    vector_store = ChromaVectorStore(persist_path=str(tmp_path))
+    entry_id = vector_store.store(prompt="prompt", response="response", vector=[1.0])
+    metadatas_before = vector_store._collection.get(
+        ids=[entry_id],
+        include=["metadatas"],
+    )["metadatas"]
+    assert metadatas_before is not None
+    metadata_before = metadatas_before[0]
+
+    result = vector_store.health_check()
+
+    metadatas_after = vector_store._collection.get(
+        ids=[entry_id],
+        include=["metadatas"],
+    )["metadatas"]
+    assert metadatas_after is not None
+    metadata_after = metadatas_after[0]
+    assert result.healthy is True
+    assert result.name == "vector-store:chroma"
+    assert metadata_after == metadata_before
+
+
+def test_health_check_fails_when_chroma_count_fails(tmp_path, monkeypatch) -> None:
+    vector_store = ChromaVectorStore(persist_path=str(tmp_path))
+
+    def raise_error() -> int:
+        raise RuntimeError("count failed")
+
+    monkeypatch.setattr(vector_store._collection, "count", raise_error)
+
+    result = vector_store.health_check()
+
+    assert result.healthy is False
+    assert result.name == "vector-store:chroma"
+    assert result.details == "count failed"
+
+
 def test_rejects_zero_vectors(tmp_path) -> None:
     vector_store = ChromaVectorStore(persist_path=str(tmp_path))
 

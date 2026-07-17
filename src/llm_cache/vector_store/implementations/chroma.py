@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from time import monotonic
+from typing import Any, cast
 from uuid import uuid4
 
 import chromadb
 
+from llm_cache.health.health_check_result import HealthCheckResult
 from llm_cache.vector_store.eviction.interface import IEvictionPolicy
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
 from llm_cache.vector_store.models import CacheEntryMetadata
@@ -56,17 +58,20 @@ class ChromaVectorStore(IVectorStore):
             include=["documents", "metadatas", "distances"],
         )
 
-        ids = results.get("ids") or [[]]
-        if not ids[0]:
+        ids = results.get("ids")
+        distances = results.get("distances")
+        documents = results.get("documents")
+        metadatas = results.get("metadatas")
+        if not ids or not ids[0] or not distances or not documents or not metadatas:
             return VectorStoreResult(found=False, prompt="", response="")
 
         entry_id = ids[0][0]
-        distance = results["distances"][0][0]
+        distance = distances[0][0]
         if distance > self.similarity_threshold:
             return VectorStoreResult(found=False, prompt="", response="")
 
-        document = results["documents"][0][0]
-        metadata = results["metadatas"][0][0] or {}
+        document = documents[0][0]
+        metadata = cast(dict[str, Any], metadatas[0][0] or {})
         response = metadata.get("response", "")
         self._touch(entry_id, metadata)
 
@@ -103,7 +108,25 @@ class ChromaVectorStore(IVectorStore):
         )
         return entry_id
 
-    def _touch(self, entry_id: str, metadata: dict) -> None:
+    def health_check(self) -> HealthCheckResult:
+        try:
+            entry_count = self._collection.count()
+        except Exception as error:
+            return HealthCheckResult.fail(
+                name="vector-store:chroma",
+                message=f"Chroma collection '{self.collection_name}' is not reachable",
+                details=str(error),
+            )
+
+        return HealthCheckResult.ok(
+            name="vector-store:chroma",
+            message=(
+                f"Chroma collection '{self.collection_name}' is reachable "
+                f"with {entry_count} entries"
+            ),
+        )
+
+    def _touch(self, entry_id: str, metadata: dict[str, Any]) -> None:
         updated_metadata = {
             **metadata,
             "last_accessed_at": monotonic(),
