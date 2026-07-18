@@ -6,9 +6,11 @@ from dataclasses import dataclass
 
 from llm_cache.config.app_config import VectorStoreConfig
 from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
     DEFAULT_EVICTION_POLICY,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
+    SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
     SUPPORTED_VECTOR_STORE_PROVIDERS,
     normalize_provider_name,
 )
@@ -68,6 +70,16 @@ def build_vector_store_server_parser(
         help="Collection name for vector stores that support named collections.",
     )
     parser.add_argument(
+        "--distance-function",
+        choices=SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
+        default=DEFAULT_CHROMA_DISTANCE_FUNCTION,
+        help=(
+            "Distance function for Chroma vector stores. Supported functions: "
+            f"{', '.join(SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)}. "
+            f"Default: {DEFAULT_CHROMA_DISTANCE_FUNCTION}"
+        ),
+    )
+    parser.add_argument(
         "--capacity",
         type=int,
         default=DEFAULT_VECTOR_STORE_MAX_CAPACITY,
@@ -109,9 +121,11 @@ def parse_vector_store_server_args(
     args.host = args.host.strip()
     args.provider = normalize_provider_name(args.provider)
     args.eviction_policy = normalize_provider_name(args.eviction_policy)
+    args.distance_function = normalize_provider_name(args.distance_function)
 
     _validate_vector_store_server_runtime_args(parser, args)
     _validate_vector_store_provider(parser, args.provider)
+    _validate_distance_function(parser, args.distance_function)
 
     return VectorStoreServerConfig(
         host=args.host,
@@ -125,6 +139,7 @@ def parse_vector_store_server_args(
             collection_name=args.collection,
             max_capacity=args.capacity,
             eviction_policy=args.eviction_policy,
+            distance_function=args.distance_function,
         ),
     )
 
@@ -154,4 +169,15 @@ def _validate_vector_store_provider(
         parser.error(
             f"Unknown vector-store provider {vector_store_provider!r}. "
             f"Supported vector-store providers: {', '.join(SUPPORTED_VECTOR_STORE_PROVIDERS)}"
+        )
+
+
+def _validate_distance_function(
+    parser: argparse.ArgumentParser,
+    distance_function: str,
+) -> None:
+    if distance_function not in SUPPORTED_CHROMA_DISTANCE_FUNCTIONS:
+        parser.error(
+            f"Unsupported distance function {distance_function!r}. "
+            f"Supported distance functions: {', '.join(SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)}"
         )

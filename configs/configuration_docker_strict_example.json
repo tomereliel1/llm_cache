@@ -14,6 +14,7 @@
     "provider": "chroma",
     "path": "/data/chroma",
     "collection": "llm_cache",
+    "distance_function": "l2",
     "capacity": 1000,
     "similarity_threshold": 0.8,
     "eviction_policy": "default",

@@ -209,6 +209,7 @@ def _validate_common_values(section_name: str, values: Mapping[str, Any]) -> Non
             "base_url",
             "path",
             "collection",
+            "distance_function",
             "eviction_policy",
             "embedding_target",
             "vector_store_target",
