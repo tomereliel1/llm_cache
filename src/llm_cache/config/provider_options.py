@@ -28,10 +28,13 @@ class VectorStoreProviderOption:
 DEFAULT_PROMPT = "What is the capital of Israel?"
 DEFAULT_SIMILARITY_THRESHOLD = 0.8
 DEFAULT_EVICTION_POLICY = "default"
+DEFAULT_CHROMA_DISTANCE_FUNCTION = "l2"
 
 DEFAULT_EMBEDDING_PROVIDER = "ollama"
 DEFAULT_LLM_PROVIDER = "ollama"
 DEFAULT_VECTOR_STORE_PROVIDER = "chroma"
+
+SUPPORTED_CHROMA_DISTANCE_FUNCTIONS = ("l2", "cosine", "ip")
 
 
 SUPPORTED_EVICTION_POLICIES: dict[str, ProviderOption] = {
@@ -107,7 +110,7 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, VectorStoreProviderOption] = {
         name="chroma",
         default_eviction_policy="lru",
         supported_eviction_policies=("default", "lru"),
-        description="Persistent Chroma vector store using Chroma's default distance behavior.",
+        description="Persistent Chroma vector store with configurable distance functions.",
     ),
 }
 
@@ -173,6 +176,15 @@ def format_supported_configs() -> str:
                 f"    default eviction policy: {provider.default_eviction_policy}",
                 "    supported eviction policies: "
                 f"{', '.join(provider.supported_eviction_policies)}",
+                *(
+                    [
+                        f"    default distance function: {DEFAULT_CHROMA_DISTANCE_FUNCTION}",
+                        "    supported distance functions: "
+                        f"{', '.join(SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)}",
+                    ]
+                    if provider.name == "chroma"
+                    else []
+                ),
                 "",
             ]
         )
@@ -198,6 +210,7 @@ def format_supported_configs() -> str:
             f"  vector-store provider: {DEFAULT_VECTOR_STORE_PROVIDER}",
             f"  similarity threshold: {DEFAULT_SIMILARITY_THRESHOLD}",
             f"  eviction policy: {DEFAULT_EVICTION_POLICY}",
+            f"  chroma distance function: {DEFAULT_CHROMA_DISTANCE_FUNCTION}",
             "  resolved vector-store eviction policy: "
             f"{default_vector_store_eviction_policy(DEFAULT_VECTOR_STORE_PROVIDER)}",
         ]

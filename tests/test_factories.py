@@ -52,6 +52,21 @@ def test_app_config_rejects_similarity_threshold_outside_range(
         _app_config_with_threshold(similarity_threshold)
 
 
+def test_app_config_accepts_supported_distance_function() -> None:
+    config = VectorStoreConfig(
+        provider="chroma",
+        distance_function="cosine",
+    )
+
+    assert config.distance_function == "cosine"
+
+
+def test_app_config_preserves_unknown_distance_function_for_factory_validation() -> None:
+    config = VectorStoreConfig(provider="chroma", distance_function="bad-distance")
+
+    assert config.distance_function == "bad-distance"
+
+
 def test_create_embedder_returns_ollama_embedder_for_ollama() -> None:
     embedder = create_embedder(EmbeddingConfig(provider="ollama", model="embeddinggemma"))
 
@@ -180,6 +195,7 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
             collection_name="factory_test",
             max_capacity=42,
             eviction_policy="lru",
+            distance_function="cosine",
         )
     )
 
@@ -188,7 +204,22 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
     assert vector_store.persist_path == str(tmp_path)
     assert vector_store.collection_name == "factory_test"
     assert vector_store.max_capacity == 42
+    assert vector_store.distance_function == "cosine"
     assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+
+
+@pytest.mark.parametrize(
+    "provider",
+    ["vector-store-miss-stub", "vector-store-hit-stub", "in-memory"],
+)
+def test_create_vector_store_ignores_distance_function_for_non_chroma_providers(
+    provider: str,
+) -> None:
+    vector_store = create_vector_store(
+        VectorStoreConfig(provider=provider, distance_function="cosine")
+    )
+
+    assert vector_store is not None
 
 
 def test_create_eviction_policy_returns_lru_policy() -> None:

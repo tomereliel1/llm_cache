@@ -1,9 +1,11 @@
 import pytest
 
 from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
     DEFAULT_EVICTION_POLICY,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
+    SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
 )
 from llm_cache.config.vector_store_server_cli_args import (
     DEFAULT_VECTOR_STORE_COLLECTION,
@@ -29,6 +31,7 @@ def test_parse_vector_store_server_args_uses_shared_defaults() -> None:
     assert config.vector_store.collection_name == DEFAULT_VECTOR_STORE_COLLECTION
     assert config.vector_store.max_capacity == DEFAULT_VECTOR_STORE_MAX_CAPACITY
     assert config.vector_store.eviction_policy == DEFAULT_EVICTION_POLICY
+    assert config.vector_store.distance_function == DEFAULT_CHROMA_DISTANCE_FUNCTION
 
 
 def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
@@ -50,6 +53,8 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
             "42",
             "--eviction-policy",
             "lru",
+            "--distance-function",
+            "cosine",
             "--workers",
             "3",
             "--check-setup",
@@ -66,6 +71,7 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
     assert config.vector_store.collection_name == "custom_collection"
     assert config.vector_store.max_capacity == 42
     assert config.vector_store.eviction_policy == "lru"
+    assert config.vector_store.distance_function == "cosine"
 
 
 def test_parse_vector_store_server_args_normalizes_names() -> None:
@@ -91,6 +97,20 @@ def test_unknown_eviction_policy_is_preserved_for_factory_validation() -> None:
     config = parse_vector_store_server_args(["--eviction-policy", " BAD-POLICY "])
 
     assert config.vector_store.eviction_policy == "bad-policy"
+
+
+@pytest.mark.parametrize("distance_function", SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)
+def test_parse_vector_store_server_args_accepts_distance_functions(
+    distance_function: str,
+) -> None:
+    config = parse_vector_store_server_args(["--distance-function", distance_function])
+
+    assert config.vector_store.distance_function == distance_function
+
+
+def test_invalid_distance_function_exits() -> None:
+    with pytest.raises(SystemExit):
+        parse_vector_store_server_args(["--distance-function", "bad-distance"])
 
 
 @pytest.mark.parametrize(

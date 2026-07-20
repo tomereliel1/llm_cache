@@ -10,12 +10,14 @@ from llm_cache.config.app_config import (
     VectorStoreConfig,
 )
 from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
     DEFAULT_EMBEDDING_PROVIDER,
     DEFAULT_EVICTION_POLICY,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_PROMPT,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
+    SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
     SUPPORTED_EMBEDDING_PROVIDERS,
     SUPPORTED_EVICTION_POLICIES,
     SUPPORTED_LLM_PROVIDERS,
@@ -42,6 +44,7 @@ def build_parser(
             "--embedding-model embeddinggemma "
             "--llm-provider ollama "
             "--vector-store-provider chroma "
+            "--vector-store-distance-function cosine "
             "--similarity-threshold 0.85\n\n"
             "For provider/model details, add --list-supported-configs."
         )
@@ -115,6 +118,17 @@ def build_parser(
         help="Collection name for vector stores that support named collections.",
     )
     parser.add_argument(
+        "--vector-store-distance-function",
+        type=str,
+        choices=SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
+        default=DEFAULT_CHROMA_DISTANCE_FUNCTION,
+        help=(
+            "Distance function for Chroma vector stores. Supported functions: "
+            f"{', '.join(SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)}. "
+            f"Default: {DEFAULT_CHROMA_DISTANCE_FUNCTION}"
+        ),
+    )
+    parser.add_argument(
         "--cache-max-capacity",
         type=int,
         default=1000,
@@ -159,6 +173,9 @@ def parse_cli_args(
     args.llm_provider = normalize_provider_name(args.llm_provider)
     args.vector_store_provider = normalize_provider_name(args.vector_store_provider)
     args.eviction_policy = normalize_provider_name(args.eviction_policy)
+    args.vector_store_distance_function = normalize_provider_name(
+        args.vector_store_distance_function
+    )
 
     if args.embedding_model is None:
         args.embedding_model = default_embedding_model(args.embedding_provider)
@@ -227,5 +244,6 @@ def app_config_from_args(args: argparse.Namespace) -> AppConfig:
             collection_name=args.vector_store_collection,
             max_capacity=args.cache_max_capacity,
             eviction_policy=args.eviction_policy,
+            distance_function=args.vector_store_distance_function,
         ),
     )

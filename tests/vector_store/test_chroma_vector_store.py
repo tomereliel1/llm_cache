@@ -1,3 +1,4 @@
+import chromadb
 import pytest
 
 from llm_cache.vector_store import ChromaVectorStore, LRUEvictionPolicy
@@ -25,6 +26,26 @@ def test_store_and_search_returns_cached_response_within_threshold(tmp_path) -> 
     assert result.found is True
     assert result.prompt == "What is semantic caching?"
     assert result.response == "cached response"
+
+
+def test_cosine_distance_uses_threshold_as_maximum_distance(tmp_path) -> None:
+    vector_store = ChromaVectorStore(
+        similarity_threshold=0.05,
+        persist_path=str(tmp_path),
+        distance_function="cosine",
+    )
+    vector_store.store(
+        prompt="What is semantic caching?",
+        response="cached response",
+        vector=[1.0, 0.0],
+    )
+
+    hit = vector_store.search_similar([0.99, 0.01])
+    miss = vector_store.search_similar([0.0, 1.0])
+
+    assert hit.found is True
+    assert hit.response == "cached response"
+    assert miss.found is False
 
 
 def test_search_returns_miss_outside_threshold(tmp_path) -> None:
@@ -118,6 +139,65 @@ def test_rejects_invalid_similarity_threshold(tmp_path, threshold: float) -> Non
 def test_rejects_invalid_max_capacity(tmp_path) -> None:
     with pytest.raises(ValueError, match="max_capacity"):
         ChromaVectorStore(max_capacity=0, persist_path=str(tmp_path))
+
+
+def test_stores_configured_distance_function_in_collection_metadata(tmp_path) -> None:
+    vector_store = ChromaVectorStore(
+        persist_path=str(tmp_path),
+        distance_function="cosine",
+    )
+
+    assert vector_store.distance_function == "cosine"
+    assert vector_store._collection.metadata["hnsw:space"] == "cosine"
+
+
+def test_opens_existing_collection_with_same_distance_function(tmp_path) -> None:
+    ChromaVectorStore(
+        persist_path=str(tmp_path),
+        collection_name="same_distance",
+        distance_function="cosine",
+    )
+
+    vector_store = ChromaVectorStore(
+        persist_path=str(tmp_path),
+        collection_name="same_distance",
+        distance_function="cosine",
+    )
+
+    assert vector_store.distance_function == "cosine"
+
+
+def test_opens_legacy_collection_without_distance_metadata_as_l2(tmp_path) -> None:
+    client = chromadb.PersistentClient(path=str(tmp_path))
+    client.get_or_create_collection(name="legacy_collection")
+
+    vector_store = ChromaVectorStore(
+        persist_path=str(tmp_path),
+        collection_name="legacy_collection",
+        distance_function="l2",
+    )
+
+    assert vector_store.distance_function == "l2"
+
+
+def test_rejects_existing_collection_with_different_distance_function(tmp_path) -> None:
+    ChromaVectorStore(
+        persist_path=str(tmp_path),
+        collection_name="mismatched_distance",
+        distance_function="cosine",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "already uses distance function 'cosine'.*requested 'l2'.*cannot be changed in place"
+        ),
+    ):
+        ChromaVectorStore(
+            persist_path=str(tmp_path),
+            collection_name="mismatched_distance",
+            distance_function="l2",
+        )
 
 
 def test_health_check_is_healthy_and_does_not_touch_entries(tmp_path) -> None:

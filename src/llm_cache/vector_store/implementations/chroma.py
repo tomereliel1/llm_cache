@@ -6,6 +6,10 @@ from uuid import uuid4
 
 import chromadb
 
+from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
+    normalize_provider_name,
+)
 from llm_cache.health.health_check_result import HealthCheckResult
 from llm_cache.vector_store.eviction.interface import IEvictionPolicy
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
@@ -13,7 +17,7 @@ from llm_cache.vector_store.models import CacheEntryMetadata
 
 
 class ChromaVectorStore(IVectorStore):
-    """Persistent vector store backed by Chroma's default distance behavior."""
+    """Persistent vector store backed by Chroma distance functions."""
 
     def __init__(
         self,
@@ -22,6 +26,7 @@ class ChromaVectorStore(IVectorStore):
         collection_name: str = "llm_cache",
         max_capacity: int = 1000,
         eviction_policy: IEvictionPolicy | None = None,
+        distance_function: str = DEFAULT_CHROMA_DISTANCE_FUNCTION,
     ) -> None:
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
@@ -35,16 +40,21 @@ class ChromaVectorStore(IVectorStore):
         if not collection_name.strip():
             raise ValueError("collection_name must be a non-empty string")
 
+        distance_function = normalize_provider_name(distance_function)
+
         self.similarity_threshold = similarity_threshold
         self.persist_path = persist_path
         self.collection_name = collection_name
         self.max_capacity = max_capacity
         self.eviction_policy = eviction_policy
+        self.distance_function = distance_function
 
         self._client = chromadb.PersistentClient(path=persist_path)
         self._collection = self._client.get_or_create_collection(
             name=collection_name,
+            metadata={"hnsw:space": distance_function},
         )
+        self._validate_collection_distance_function()
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
         self._validate_vector(vector)
@@ -122,8 +132,24 @@ class ChromaVectorStore(IVectorStore):
             name="vector-store:chroma",
             message=(
                 f"Chroma collection '{self.collection_name}' is reachable "
-                f"with {entry_count} entries"
+                f"with {entry_count} entries using {self.distance_function} distance"
             ),
+        )
+
+    def _validate_collection_distance_function(self) -> None:
+        metadata = cast(dict[str, Any], self._collection.metadata or {})
+        existing_distance_function = str(
+            metadata.get("hnsw:space", DEFAULT_CHROMA_DISTANCE_FUNCTION)
+        )
+        if existing_distance_function == self.distance_function:
+            return
+
+        raise ValueError(
+            f"Chroma collection '{self.collection_name}' already uses distance "
+            f"function '{existing_distance_function}', but configuration requested "
+            f"'{self.distance_function}'. Chroma collection distance functions cannot "
+            "be changed in place. Choose the existing distance function, use a new "
+            "collection or path, or delete the existing Chroma data before restarting."
         )
 
     def _touch(self, entry_id: str, metadata: dict[str, Any]) -> None:

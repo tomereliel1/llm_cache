@@ -27,6 +27,9 @@ uv run python -m demos.local_one_prompt_demo \
   --vector-store-provider in-memory
 ```
 
+The in-memory vector store always uses cosine similarity and ignores Chroma-only
+distance-function settings.
+
 ## 2. Remote embedding provider demo
 
 Purpose: local orchestrator/test doubles with a real embedding gRPC process.
@@ -104,4 +107,10 @@ uv run python -m demos.grpc_providers_orchestrator_demo \
   --llm-target localhost:50053
 ```
 
+For a persistent Chroma vector-store server, use `--provider chroma` and optionally
+`--distance-function cosine`. Chroma distance functions are fixed for existing
+collections; see `docs/VECTOR_STORE_DISTANCE.md` before changing them.
+
 Use each server module's `--help` if you want to override its provider/model defaults.
+For vector-store distance functions and threshold behavior, see
+`docs/VECTOR_STORE_DISTANCE.md`.
