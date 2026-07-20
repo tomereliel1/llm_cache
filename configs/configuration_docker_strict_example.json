@@ -4,19 +4,20 @@
     "port": 50051,
     "provider": "ollama",
     "model": "embeddinggemma",
-    "check_setup": false,
+    "base_url": "http://host.docker.internal:11434",
+    "check_setup": true,
     "workers": 10
   },
   "vector_store_service": {
     "host": "0.0.0.0",
     "port": 50052,
     "provider": "chroma",
-    "path": "data/chroma",
+    "path": "/data/chroma",
     "collection": "llm_cache",
     "capacity": 1000,
     "similarity_threshold": 0.8,
     "eviction_policy": "default",
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "llm_service": {
@@ -24,27 +25,28 @@
     "port": 50053,
     "provider": "ollama",
     "model": "gemma3:4b",
-    "check_setup": false,
+    "base_url": "http://host.docker.internal:11434",
+    "check_setup": true,
     "workers": 10
   },
   "orchestrator_service": {
     "host": "0.0.0.0",
     "port": 50050,
-    "embedding_target": "localhost:50051",
-    "vector_store_target": "localhost:50052",
-    "llm_target": "localhost:50053",
+    "embedding_target": "embedding-service:50051",
+    "vector_store_target": "vector-store-service:50052",
+    "llm_target": "llm-service:50053",
     "provider_timeout_seconds": 300.0,
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "web_client": {
-    "target": "localhost:50050",
+    "target": "orchestrator:50050",
     "timeout_seconds": 300.0,
-    "host": "127.0.0.1",
+    "host": "0.0.0.0",
     "port": 8080
   },
   "cli_client": {
-    "target": "localhost:50050",
+    "target": "orchestrator:50050",
     "timeout_seconds": 300.0
   }
 }

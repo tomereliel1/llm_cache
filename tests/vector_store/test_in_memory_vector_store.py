@@ -118,6 +118,18 @@ def test_rejects_invalid_max_capacity() -> None:
         InMemoryVectorStore(max_capacity=0)
 
 
+def test_health_check_is_healthy_and_does_not_touch_entries() -> None:
+    vector_store = InMemoryVectorStore()
+    vector_store.store(prompt="prompt", response="response", vector=[1.0])
+    entries_before = list(vector_store._entries)
+
+    result = vector_store.health_check()
+
+    assert result.healthy is True
+    assert result.name == "vector-store:in-memory"
+    assert vector_store._entries == entries_before
+
+
 def test_rejects_dimension_mismatch() -> None:
     vector_store = InMemoryVectorStore()
     vector_store.store(prompt="prompt", response="response", vector=[1.0, 0.0])

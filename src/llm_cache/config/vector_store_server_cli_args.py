@@ -27,6 +27,7 @@ class VectorStoreServerConfig:
     host: str
     port: int
     max_workers: int
+    check_setup: bool
     vector_store: VectorStoreConfig
 
 
@@ -86,6 +87,11 @@ def build_vector_store_server_parser(
             f"Default: {DEFAULT_VECTOR_STORE_SERVER_MAX_WORKERS}"
         ),
     )
+    parser.add_argument(
+        "--check-setup",
+        action="store_true",
+        help="Run provider health checks before starting the server.",
+    )
     apply_config_defaults(
         parser,
         argv,
@@ -111,6 +117,7 @@ def parse_vector_store_server_args(
         host=args.host,
         port=args.port,
         max_workers=args.workers,
+        check_setup=args.check_setup,
         vector_store=VectorStoreConfig(
             provider=args.provider,
             similarity_threshold=args.similarity_threshold,

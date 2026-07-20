@@ -6,8 +6,7 @@ import os
 from llm_cache.request_context import get_current_request_id
 
 DEFAULT_LOG_FORMAT = (
-    "%(asctime)s | %(service_name)s | %(levelname)s | "
-    "request_id=%(request_id)s | %(message)s"
+    "%(asctime)s | %(service_name)s | %(levelname)s | request_id=%(request_id)s | %(message)s"
 )
 
 
