@@ -45,8 +45,9 @@ uv run python -m llm_cache.vector_store.grpc.server \
   --similarity-threshold 0.8 --capacity 1000
 ```
 
-Use `--provider chroma` for persistent storage. Its default location is
-`.cache/vector_store`.
+Use `--provider chroma` for Chroma's vector store behavior. Chroma is ephemeral by
+default, so it does not keep cached responses between launches. Add `--persistent` to
+the vector-store server command if you explicitly want it to write to `--path`.
 
 ### Terminal 4 — LLM gRPC server
 

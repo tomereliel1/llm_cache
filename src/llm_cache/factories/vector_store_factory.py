@@ -52,6 +52,7 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
             collection_name=config.collection_name,
             max_capacity=config.max_capacity,
             eviction_policy=eviction_policy,
+            persistent=config.persistent,
         )
 
     raise AssertionError(f"Unhandled vector store provider: {provider}")

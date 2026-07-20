@@ -28,6 +28,7 @@ def test_parse_vector_store_server_args_uses_shared_defaults() -> None:
     assert config.vector_store.collection_name == DEFAULT_VECTOR_STORE_COLLECTION
     assert config.vector_store.max_capacity == DEFAULT_VECTOR_STORE_MAX_CAPACITY
     assert config.vector_store.eviction_policy == DEFAULT_EVICTION_POLICY
+    assert config.vector_store.persistent is False
 
 
 def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
@@ -49,6 +50,7 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
             "42",
             "--eviction-policy",
             "lru",
+            "--persistent",
             "--workers",
             "3",
         ]
@@ -63,6 +65,7 @@ def test_parse_vector_store_server_args_accepts_explicit_values() -> None:
     assert config.vector_store.collection_name == "custom_collection"
     assert config.vector_store.max_capacity == 42
     assert config.vector_store.eviction_policy == "lru"
+    assert config.vector_store.persistent is True
 
 
 def test_parse_vector_store_server_args_normalizes_names() -> None:

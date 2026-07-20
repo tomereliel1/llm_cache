@@ -41,11 +41,32 @@ def test_search_returns_miss_outside_threshold(tmp_path) -> None:
     assert result.response == ""
 
 
-def test_chroma_store_persists_entries_between_instances(tmp_path) -> None:
+def test_chroma_store_does_not_persist_entries_between_instances_by_default(tmp_path) -> None:
+    first_store = ChromaVectorStore(
+        similarity_threshold=0.8,
+        persist_path=str(tmp_path),
+        collection_name="ephemeral_test",
+    )
+    first_store.store(prompt="prompt", response="response", vector=[1.0, 0.0])
+
+    second_store = ChromaVectorStore(
+        similarity_threshold=0.8,
+        persist_path=str(tmp_path),
+        collection_name="ephemeral_test",
+    )
+
+    result = second_store.search_similar([1.0, 0.0])
+
+    assert result.found is False
+    assert result.response == ""
+
+
+def test_chroma_store_persists_entries_between_instances_when_enabled(tmp_path) -> None:
     first_store = ChromaVectorStore(
         similarity_threshold=0.8,
         persist_path=str(tmp_path),
         collection_name="persist_test",
+        persistent=True,
     )
     first_store.store(prompt="prompt", response="response", vector=[1.0, 0.0])
 
@@ -53,6 +74,7 @@ def test_chroma_store_persists_entries_between_instances(tmp_path) -> None:
         similarity_threshold=0.8,
         persist_path=str(tmp_path),
         collection_name="persist_test",
+        persistent=True,
     )
 
     result = second_store.search_similar([1.0, 0.0])

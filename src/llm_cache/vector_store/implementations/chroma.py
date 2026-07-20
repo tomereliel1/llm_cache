@@ -11,7 +11,7 @@ from llm_cache.vector_store.models import CacheEntryMetadata
 
 
 class ChromaVectorStore(IVectorStore):
-    """Persistent vector store backed by Chroma's default distance behavior."""
+    """Vector store backed by Chroma's default distance behavior."""
 
     def __init__(
         self,
@@ -20,6 +20,7 @@ class ChromaVectorStore(IVectorStore):
         collection_name: str = "llm_cache",
         max_capacity: int = 1000,
         eviction_policy: IEvictionPolicy | None = None,
+        persistent: bool = False,
     ) -> None:
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
@@ -27,7 +28,7 @@ class ChromaVectorStore(IVectorStore):
         if max_capacity < 1:
             raise ValueError("max_capacity must be at least 1")
 
-        if not persist_path.strip():
+        if persistent and not persist_path.strip():
             raise ValueError("persist_path must be a non-empty string")
 
         if not collection_name.strip():
@@ -38,10 +39,16 @@ class ChromaVectorStore(IVectorStore):
         self.collection_name = collection_name
         self.max_capacity = max_capacity
         self.eviction_policy = eviction_policy
+        self.persistent = persistent
 
-        self._client = chromadb.PersistentClient(path=persist_path)
+        if persistent:
+            self._client = chromadb.PersistentClient(path=persist_path)
+            chroma_collection_name = collection_name
+        else:
+            self._client = chromadb.EphemeralClient()
+            chroma_collection_name = f"cache_{uuid4().hex}"
         self._collection = self._client.get_or_create_collection(
-            name=collection_name,
+            name=chroma_collection_name,
         )
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:

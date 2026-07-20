@@ -13,6 +13,7 @@
     "port": 50052,
     "provider": "chroma",
     "path": "/data/chroma",
+    "persistent": false,
     "collection": "llm_cache",
     "capacity": 1000,
     "similarity_threshold": 0.8,

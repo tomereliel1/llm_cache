@@ -158,6 +158,7 @@ def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
 
     assert isinstance(vector_store, ChromaVectorStore)
     assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+    assert vector_store.persistent is False
 
 
 def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
@@ -180,6 +181,7 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
             collection_name="factory_test",
             max_capacity=42,
             eviction_policy="lru",
+            persistent=True,
         )
     )
 
@@ -189,6 +191,7 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
     assert vector_store.collection_name == "factory_test"
     assert vector_store.max_capacity == 42
     assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+    assert vector_store.persistent is True
 
 
 def test_create_eviction_policy_returns_lru_policy() -> None:

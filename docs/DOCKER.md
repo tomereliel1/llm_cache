@@ -75,23 +75,21 @@ When using Groq, keep the secret in the environment. The optional
 `llm_service.groq_api_key_env` JSON field (or `--groq-api-key-env`) selects the environment
 variable name; it never contains the key itself. If omitted, it defaults to `GROQ_API_KEY`.
 
-Stop the stack while preserving cached Chroma data with `docker compose down`.
-
-To delete only the Chroma cache and keep downloaded Ollama models:
-
-```bash
-docker compose --profile ollama down
-docker volume rm llm_cache_chroma_data
-docker compose --profile ollama up
-```
+By default, Chroma cache data is not preserved between vector-store service launches.
+The Docker stack uses Chroma as an ephemeral cache unless
+`vector_store_service.persistent` is set to `true`.
 
 Use `docker compose --profile ollama down` when the Ollama profile has been used, so Compose
 also stops the optional Ollama container before recreating the project network.
 
-If your Compose project name is different, find the exact volume name with:
+To opt in to a persistent Chroma cache, set:
 
-```bash
-docker volume ls | grep chroma_data
+```json
+"vector_store_service": {
+  "provider": "chroma",
+  "path": "/data/chroma",
+  "persistent": true
+}
 ```
 
 Avoid `docker compose down -v` when using the Ollama profile, because it removes all Compose
@@ -120,8 +118,8 @@ docker compose --profile ollama up --build
   connect to the exposed orchestrator at `localhost:50050`.
 - If port 8080 is already in use, change the left side of `8080:8080` in
   `docker-compose.yml`, for example `8081:8080`.
-- `docker compose down` preserves Chroma. To clear only Chroma, remove the `chroma_data`
-  Docker volume directly; avoid `docker compose down -v` if you want to keep Ollama models.
+- Chroma is ephemeral by default. If you enable `vector_store_service.persistent`, cached
+  data is written under the configured `path`.
 
 Host-Ollama mode needs two terminals when Ollama is not already running: one for Ollama and
 one for the Compose stack. Compose-Ollama mode needs one terminal after its models are pulled.

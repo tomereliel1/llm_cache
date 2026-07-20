@@ -106,7 +106,12 @@ def build_parser(
         "--vector-store-path",
         type=str,
         default=".cache/vector_store",
-        help="Local persistence path for vector stores that support persistence.",
+        help="Local persistence path for vector stores when persistence is enabled.",
+    )
+    parser.add_argument(
+        "--vector-store-persistent",
+        action="store_true",
+        help="Persist vector-store data between launches. Chroma is ephemeral by default.",
     )
     parser.add_argument(
         "--vector-store-collection",
@@ -227,5 +232,6 @@ def app_config_from_args(args: argparse.Namespace) -> AppConfig:
             collection_name=args.vector_store_collection,
             max_capacity=args.cache_max_capacity,
             eviction_policy=args.eviction_policy,
+            persistent=args.vector_store_persistent,
         ),
     )
