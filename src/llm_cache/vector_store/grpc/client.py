@@ -46,6 +46,7 @@ class VectorStoreGrpcClient(IVectorStore):
             found=reply.found,
             prompt=reply.prompt,
             response=reply.response,
+            score=reply.similarity_score if reply.found else None,
         )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:

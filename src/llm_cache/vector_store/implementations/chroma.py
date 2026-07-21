@@ -81,6 +81,7 @@ class ChromaVectorStore(IVectorStore):
             found=True,
             prompt=document,
             response=str(response),
+            score=float(distance),
         )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:

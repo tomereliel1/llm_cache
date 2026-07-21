@@ -23,6 +23,7 @@ class VectorStoreHitStub(IVectorStore):
             found=True,
             prompt=self.cached_prompt,
             response=self.cached_response,
+            score=1.0,
         )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:

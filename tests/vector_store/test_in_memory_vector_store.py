@@ -30,6 +30,7 @@ def test_store_and_search_returns_cached_response_above_threshold() -> None:
     assert result.found is True
     assert result.prompt == "What is semantic caching?"
     assert result.response == "cached response"
+    assert result.score == pytest.approx(0.9938837)
 
 
 def test_search_returns_miss_below_threshold() -> None:

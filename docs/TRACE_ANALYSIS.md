@@ -28,6 +28,9 @@ This creates:
 datasets/quora_1000.h5
 ```
 
+The `datasets/` directory is ignored by Git because trace files can be large
+and should be regenerated locally by each developer.
+
 Supported datasets:
 
 - `quora`
@@ -42,6 +45,8 @@ The `quora` option uses the Parquet-backed
 
 ## Analyze the trace
 
+Fast offline simulation using the embeddings saved in the trace file:
+
 ```powershell
 python scripts/analyze_trace.py `
   --input datasets/quora_1000.h5 `
@@ -50,14 +55,55 @@ python scripts/analyze_trace.py `
   --output reports/quora_1000.md
 ```
 
+Replay the same prompt texts through the actual project embedder and vector
+store implementation:
+
+```powershell
+python scripts/analyze_trace.py `
+  --input datasets/quora_1000.h5 `
+  --backend project-vector-store `
+  --vector-store-provider chroma `
+  --embedding-provider ollama `
+  --embedding-model embeddinggemma `
+  --thresholds 0.8 `
+  --capacity 1000 `
+  --output reports/quora_1000.md
+```
+
+The project-vector-store backend calls the real project code:
+
+```text
+OllamaEmbedder -> CacheOrchestrator -> ChromaVectorStore.search_similar/store
+```
+
+This is slower than the precomputed-vector backend because it embeds every prompt
+again. It is useful when you want to demonstrate that the actual orchestrator,
+embedder, and vector store implementation work on the dataset prompts.
+
 The report includes:
 
 - hit rate for each threshold
 - miss count
 - estimated LLM calls saved
-- average similarity of accepted cache hits
-- nearest-neighbor similarity statistics
+- average distance of accepted cache hits
+- best and worst accepted hit distance
 - real example prompt pairs that became cache hits
+
+In `project-vector-store` mode, hit/miss counts and hit scores come from the
+actual project implementation.
+
+Distance meaning depends on the selected backend:
+
+- `precomputed-vectors`: reports cosine similarity and `1 - similarity` distance.
+- `project-vector-store` with `chroma`: reports Chroma's returned distance. Lower is better.
+
+The threshold follows the vector store's own behavior. For the in-memory store,
+a hit means `similarity >= threshold`. For Chroma, a hit means
+`distance <= threshold`.
+
+The `reports/` directory is also ignored by Git. Reports are experiment outputs,
+not source files, so do not commit generated files such as
+`reports/quora_1000.md`.
 
 ## What to say in the final submission
 

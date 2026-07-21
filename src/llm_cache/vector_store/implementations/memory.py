@@ -62,6 +62,7 @@ class InMemoryVectorStore(IVectorStore):
                 found=True,
                 prompt=best_entry.prompt,
                 response=best_entry.response,
+                score=best_score,
             )
 
         return VectorStoreResult(found=False, prompt="", response="")

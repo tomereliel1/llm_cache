@@ -7,6 +7,7 @@ class VectorStoreResult:
     found: bool
     prompt: str
     response: str
+    score: float | None = None
 
 
 class IVectorStore(ABC):

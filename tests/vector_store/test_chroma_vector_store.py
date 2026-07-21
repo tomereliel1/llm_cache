@@ -25,6 +25,7 @@ def test_store_and_search_returns_cached_response_within_threshold(tmp_path) -> 
     assert result.found is True
     assert result.prompt == "What is semantic caching?"
     assert result.response == "cached response"
+    assert result.score is not None
 
 
 def test_search_returns_miss_outside_threshold(tmp_path) -> None:
