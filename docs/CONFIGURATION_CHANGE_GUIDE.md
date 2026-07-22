@@ -32,11 +32,15 @@ This file owns:
 - LLM provider default models
 - supported vector-store providers
 - vector-store provider default eviction policies
+- Chroma distance functions
 - supported eviction policies
 - global default provider choices
 - default prompt
 - default similarity threshold
 - `--list-supported-configs` output
+
+For user-facing vector-store distance-function and threshold semantics, keep
+`docs/VECTOR_STORE_DISTANCE.md` current.
 
 Do not duplicate provider/model/default strings in `main.py`, CLI code, or tests unless a test is specifically checking factory examples or concrete behavior.
 
@@ -173,6 +177,9 @@ Required changes:
 - Update `src/llm_cache/factories/vector_store_factory.py` to map the new provider name to the concrete class.
 - If the provider needs new settings, update `VectorStoreConfig` in `src/llm_cache/config/app_config.py`.
 - If users need to pass those settings through CLI, update `src/llm_cache/config/cli_args.py`.
+
+For Chroma distance-function changes, also update the vector-store server parser,
+config examples, demo/runbook docs, and `docs/VECTOR_STORE_DISTANCE.md`.
 
 Tests to add or update:
 

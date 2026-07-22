@@ -74,7 +74,7 @@ def render_page(
         outcome = f'<div class="error" role="alert">{html.escape(error)}{details}</div>'
 
     status_class = "ready" if ready else "waiting"
-    status_text = "Backend ready" if ready else "Waiting for backend"
+    status_text = "Orchestrator reachable" if ready else "Waiting for orchestrator"
     disabled = "" if ready else " disabled"
 
     document = f"""<!doctype html>
@@ -159,11 +159,11 @@ def render_page(
         const health = await response.json();
         const ready = health.status === 'ready';
         status.className = `status ${{ready ? 'ready' : 'waiting'}}`;
-        status.textContent = ready ? 'Backend ready' : 'Waiting for backend';
+        status.textContent = ready ? 'Orchestrator reachable' : 'Waiting for orchestrator';
         if (button.textContent !== 'Thinking…') button.disabled = !ready;
       }} catch (_) {{
         status.className = 'status waiting';
-        status.textContent = 'Backend unavailable';
+        status.textContent = 'Orchestrator unavailable';
         if (button.textContent !== 'Thinking…') button.disabled = true;
       }}
     }}

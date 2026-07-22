@@ -4,6 +4,7 @@ import math
 from dataclasses import dataclass
 from time import monotonic
 
+from llm_cache.health.health_check_result import HealthCheckResult
 from llm_cache.vector_store.eviction.interface import IEvictionPolicy
 from llm_cache.vector_store.eviction.lru import LRUEvictionPolicy
 from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
@@ -91,6 +92,15 @@ class InMemoryVectorStore(IVectorStore):
             )
         )
         return entry_id
+
+    def health_check(self) -> HealthCheckResult:
+        return HealthCheckResult.ok(
+            name="vector-store:in-memory",
+            message=(
+                "In-memory vector store is ready "
+                f"with {len(self._entries)}/{self.max_capacity} entries"
+            ),
+        )
 
     def _touch(self, entry_id: str) -> None:
         now = monotonic()

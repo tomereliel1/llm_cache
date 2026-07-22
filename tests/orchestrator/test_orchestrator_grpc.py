@@ -112,9 +112,7 @@ def test_fully_distributed_grpc_chain_observes_miss_then_hit():
     )
     embedding_port = embedding_server.add_insecure_port("localhost:0")
 
-    vector_server = create_vector_store_grpc_server(
-        vector_store, max_workers=2
-    )
+    vector_server = create_vector_store_grpc_server(vector_store, max_workers=2)
     vector_port = vector_server.add_insecure_port("localhost:0")
 
     llm_server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))

@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
-from llm_cache.config.provider_options import DEFAULT_EVICTION_POLICY
+from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
+    DEFAULT_EVICTION_POLICY,
+)
 
 
 class ConfigError(ValueError):
@@ -31,6 +34,7 @@ class VectorStoreConfig:
     max_capacity: int = 1000
     eviction_policy: str = DEFAULT_EVICTION_POLICY
     persistent: bool = False
+    distance_function: str = DEFAULT_CHROMA_DISTANCE_FUNCTION
 
     def __post_init__(self) -> None:
         if not 0 <= self.similarity_threshold <= 1:

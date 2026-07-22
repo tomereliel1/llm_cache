@@ -67,6 +67,17 @@ def test_invalid_similarity_threshold_exits(tmp_path: Path) -> None:
         parse_vector_store_server_args(["--config", str(path)])
 
 
+def test_invalid_distance_function_exits(tmp_path: Path) -> None:
+    path = write_config(
+        tmp_path / "config.json",
+        {"vector_store_service": {"distance_function": "bad-distance"}},
+    )
+    from llm_cache.config.vector_store_server_cli_args import parse_vector_store_server_args
+
+    with pytest.raises(SystemExit):
+        parse_vector_store_server_args(["--config", str(path)])
+
+
 def test_json_key_not_registered_by_parser_exits(tmp_path: Path) -> None:
     path = write_config(
         tmp_path / "config.json",

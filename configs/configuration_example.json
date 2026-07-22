@@ -14,9 +14,11 @@
     "path": "data/chroma",
     "persistent": false,
     "collection": "llm_cache",
+    "distance_function": "l2",
     "capacity": 1000,
     "similarity_threshold": 0.8,
     "eviction_policy": "default",
+    "check_setup": false,
     "workers": 10
   },
   "llm_service": {

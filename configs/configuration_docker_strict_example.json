@@ -5,7 +5,7 @@
     "provider": "ollama",
     "model": "embeddinggemma",
     "base_url": "http://host.docker.internal:11434",
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "vector_store_service": {
@@ -13,13 +13,12 @@
     "port": 50052,
     "provider": "chroma",
     "path": "/data/chroma",
-    "persistent": false,
     "collection": "llm_cache",
     "distance_function": "l2",
     "capacity": 1000,
     "similarity_threshold": 0.8,
     "eviction_policy": "default",
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "llm_service": {
@@ -28,7 +27,7 @@
     "provider": "ollama",
     "model": "gemma3:4b",
     "base_url": "http://host.docker.internal:11434",
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "orchestrator_service": {
@@ -38,7 +37,7 @@
     "vector_store_target": "vector-store-service:50052",
     "llm_target": "llm-service:50053",
     "provider_timeout_seconds": 300.0,
-    "check_setup": false,
+    "check_setup": true,
     "workers": 10
   },
   "web_client": {

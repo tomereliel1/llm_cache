@@ -48,6 +48,10 @@ uv run python -m llm_cache.vector_store.grpc.server \
 Use `--provider chroma` for Chroma's vector store behavior. Chroma is ephemeral by
 default, so it does not keep cached responses between launches. Add `--persistent` to
 the vector-store server command if you explicitly want it to write to `--path`.
+Use `--provider chroma` for persistent storage. Its default location is
+`.cache/vector_store`. Chroma also accepts `--distance-function l2`,
+`--distance-function cosine`, or `--distance-function ip`; see
+`docs/VECTOR_STORE_DISTANCE.md` before changing this for an existing collection.
 
 ### Terminal 4 — LLM gRPC server
 
@@ -90,6 +94,9 @@ client and each server with Ctrl+C.
 
 To inspect the request flow, cache hits/misses, and gRPC `request_id` propagation, see
 `docs/LOGGING.md`.
+
+To understand vector-store distance functions and how `--similarity-threshold` is
+interpreted by each provider, see `docs/VECTOR_STORE_DISTANCE.md`.
 
 ## Request path
 

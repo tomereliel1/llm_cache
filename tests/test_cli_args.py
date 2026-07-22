@@ -2,11 +2,13 @@ import pytest
 
 from llm_cache.config.cli_args import app_config_from_args, parse_cli_args
 from llm_cache.config.provider_options import (
+    DEFAULT_CHROMA_DISTANCE_FUNCTION,
     DEFAULT_EMBEDDING_PROVIDER,
     DEFAULT_EVICTION_POLICY,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_VECTOR_STORE_PROVIDER,
+    SUPPORTED_CHROMA_DISTANCE_FUNCTIONS,
     SUPPORTED_EMBEDDING_PROVIDERS,
     SUPPORTED_EVICTION_POLICIES,
     SUPPORTED_LLM_PROVIDERS,
@@ -26,6 +28,7 @@ def test_parse_cli_args_uses_registry_defaults() -> None:
     assert args.vector_store_provider == DEFAULT_VECTOR_STORE_PROVIDER
     assert args.similarity_threshold == DEFAULT_SIMILARITY_THRESHOLD
     assert args.eviction_policy == DEFAULT_EVICTION_POLICY
+    assert args.vector_store_distance_function == DEFAULT_CHROMA_DISTANCE_FUNCTION
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_LLM_PROVIDERS.keys())
@@ -90,6 +93,7 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.vector_store.max_capacity == args.cache_max_capacity
     assert config.vector_store.eviction_policy == args.eviction_policy
     assert config.vector_store.persistent is False
+    assert config.vector_store.distance_function == args.vector_store_distance_function
 
 
 @pytest.mark.parametrize("provider", SUPPORTED_VECTOR_STORE_PROVIDERS.keys())
@@ -115,6 +119,8 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
             "--eviction-policy",
             "lru",
             "--vector-store-persistent",
+            "--vector-store-distance-function",
+            "cosine",
         ]
     )
     config = app_config_from_args(args)
@@ -124,6 +130,21 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
     assert config.vector_store.max_capacity == 42
     assert config.vector_store.eviction_policy == "lru"
     assert config.vector_store.persistent is True
+    assert config.vector_store.distance_function == "cosine"
+
+
+@pytest.mark.parametrize("distance_function", SUPPORTED_CHROMA_DISTANCE_FUNCTIONS)
+def test_vector_store_distance_function_accepts_supported_values(
+    distance_function: str,
+) -> None:
+    args = parse_cli_args(["--vector-store-distance-function", distance_function])
+
+    assert args.vector_store_distance_function == distance_function
+
+
+def test_invalid_vector_store_distance_function_exits() -> None:
+    with pytest.raises(SystemExit):
+        parse_cli_args(["--vector-store-distance-function", "bad-distance"])
 
 
 @pytest.mark.parametrize("policy", SUPPORTED_EVICTION_POLICIES.keys())
@@ -206,5 +227,6 @@ def test_list_supported_configs_prints_registered_options(capsys) -> None:
         assert provider in output
 
     assert "vector-store provider: chroma" in output
+    assert "supported distance functions: l2, cosine, ip" in output
     assert "eviction policy: default" in output
     assert "resolved vector-store eviction policy: lru" in output

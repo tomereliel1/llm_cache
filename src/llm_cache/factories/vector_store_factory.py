@@ -46,6 +46,7 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
     if provider == "chroma":
         from llm_cache.vector_store.implementations.chroma import ChromaVectorStore
 
+        distance_function = normalize_provider_name(config.distance_function)
         return ChromaVectorStore(
             similarity_threshold=config.similarity_threshold,
             persist_path=config.persist_path,
@@ -53,6 +54,7 @@ def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
             max_capacity=config.max_capacity,
             eviction_policy=eviction_policy,
             persistent=config.persistent,
+            distance_function=distance_function,
         )
 
     raise AssertionError(f"Unhandled vector store provider: {provider}")

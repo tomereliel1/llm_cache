@@ -72,7 +72,7 @@ def test_render_page_escapes_user_and_model_content() -> None:
 def test_render_page_disables_submission_while_backend_is_unavailable() -> None:
     page = render_page(ready=False).decode()
 
-    assert "Waiting for backend" in page
+    assert "Waiting for orchestrator" in page
     assert 'type="submit" disabled' in page
 
 
