@@ -6,20 +6,35 @@ then replays the prompt sequence through our cache code.
 
 ## Install dependencies
 
+Recommended setup with `uv`:
+
+```bash
+uv sync --extra trace
+```
+
+If you are not using `uv`, install the optional trace dependencies with pip:
+
 ```powershell
 python -m pip install -e .[trace]
 ```
 
-This installs the Hugging Face dataset and HDF5 dependencies. It does not install
-`sentence-transformers` or Torch by default; the fetch script uses our
-existing Ollama embedding provider.
+This installs the Hugging Face dataset and HDF5 dependencies used to create and
+read trace files.
 
 ## Fetch a trace
 
 Start with a small trace so the first run is quick:
 
+PowerShell:
+
 ```powershell
-python scripts/fetch_datasets.py --dataset quora --limit 1000 --model embeddinggemma
+python scripts/fetch_datasets.py --dataset quora --limit 1000
+```
+
+Bash:
+
+```bash
+uv run python scripts/fetch_datasets.py --dataset quora --limit 1000
 ```
 
 This creates:
@@ -48,6 +63,8 @@ The `quora` option uses the Parquet-backed
 The analyzer replays the prompt texts through our embedder, orchestrator, and
 vector store:
 
+PowerShell:
+
 ```powershell
 python scripts/analyze_trace.py `
   --input datasets/quora_1000.h5 `
@@ -56,6 +73,19 @@ python scripts/analyze_trace.py `
   --embedding-model embeddinggemma `
   --thresholds 0.8 `
   --capacity 1000 `
+  --output reports/quora_1000.md
+```
+
+Bash:
+
+```bash
+uv run python scripts/analyze_trace.py \
+  --input datasets/quora_1000.h5 \
+  --vector-store-provider chroma \
+  --embedding-provider ollama \
+  --embedding-model embeddinggemma \
+  --thresholds 0.8 \
+  --capacity 1000 \
   --output reports/quora_1000.md
 ```
 
@@ -102,30 +132,19 @@ Useful claims are:
 Example wording:
 
 > We evaluated the cache on a Quora prompt trace. At threshold 0.8 with LRU
-> capacity 1000, the simulator estimated a cache hit rate of X%, meaning X% of
-> LLM calls could be avoided. The accepted hits had average similarity Y, which
-> shows that many prompts were semantically close even when not identical.
+> capacity 1000, our cache replay measured a cache hit rate of X%, meaning X%
+> of LLM calls could be avoided. The accepted Chroma hits had average distance
+> Y, where lower distance means a closer semantic match.
 
 ## Notes
 
-The analysis path embeds the trace prompts and does not call the configured LLM.
-That keeps the run cheap enough for experiments.
+The fetch script only downloads prompt text. The analysis script embeds those
+prompts through the configured project embedder.
 
-The fetch script does call the embedding provider. With the default Ollama provider,
-make sure Ollama is running and the embedding model is available:
+With the default Ollama embedder, make sure Ollama is running and the embedding
+model is available before running `analyze_trace.py`:
 
 ```powershell
 ollama serve
 ollama pull embeddinggemma
 ```
-
-If you explicitly want to use Sentence Transformers instead, run:
-
-```powershell
-python -m pip install sentence-transformers
-python scripts/fetch_datasets.py --dataset quora --limit 1000 `
-  --embedding-provider sentence-transformers --model all-MiniLM-L6-v2
-```
-
-On Windows, installing Torch through Sentence Transformers may fail unless long
-paths are enabled. The Ollama path avoids that dependency.

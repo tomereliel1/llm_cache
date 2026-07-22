@@ -32,13 +32,12 @@ def _load_optional_dependencies():
 class HitExample:
     prompt: str
     cached_prompt: str
-    similarity: float | None
+    score: float | None
     index: int
-    cached_index: int
 
 
 @dataclass(frozen=True)
-class SimulationResult:
+class TraceReplayResult:
     backend: str
     threshold: float
     total_prompts: int
@@ -88,7 +87,7 @@ def _missing_trace_message(path: Path) -> str:
     return (
         f"Trace file not found: {path}\n"
         "Create it first with:\n"
-        "  python scripts/fetch_datasets.py --dataset quora --limit 1000 --model embeddinggemma"
+        "  python scripts/fetch_datasets.py --dataset quora --limit 1000"
     )
 
 
@@ -119,7 +118,7 @@ def run_project_vector_store(
     embedding_model: str,
     embedding_base_url: str | None,
     vector_store_provider: str,
-) -> SimulationResult:
+) -> TraceReplayResult:
     embedder = create_embedder(
         EmbeddingConfig(
             provider=embedding_provider,
@@ -164,16 +163,15 @@ def run_project_vector_store(
                         HitExample(
                             prompt=prompt,
                             cached_prompt=vector_store.last_cached_prompt or "",
-                            similarity=result.score,
+                            score=result.score,
                             index=index,
-                            cached_index=-1,
                         )
                     )
 
         misses = llm_provider.calls_count
 
     total = hits + misses
-    return SimulationResult(
+    return TraceReplayResult(
         backend=f"project-orchestrator:{vector_store_provider}",
         threshold=threshold,
         total_prompts=total,
@@ -201,7 +199,7 @@ def build_report(
     *,
     trace_path: Path,
     capacity: int,
-    results: list[SimulationResult],
+    results: list[TraceReplayResult],
 ) -> str:
     lines: list[str] = [
         "# Trace Analysis Report",
@@ -266,12 +264,12 @@ def build_report(
         if not best.examples:
             lines.append("No cache-hit examples were found at this threshold.")
         for number, example in enumerate(best.examples, start=1):
-            similarity = _format_optional_float(example.similarity)
+            score = _format_optional_float(example.score)
             lines.extend(
                 [
                     f"### Example {number}",
                     "",
-                    f"- score: `{similarity}`",
+                    f"- score: `{score}`",
                     f"- prompt index: `{example.index}`",
                     "",
                     "Prompt:",
@@ -291,7 +289,7 @@ def build_report(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Replay a prompt trace through the real project embedder, "
+            "Replay a prompt trace through our project embedder, "
             "orchestrator, and vector store."
         )
     )
@@ -301,13 +299,13 @@ def build_parser() -> argparse.ArgumentParser:
         nargs="+",
         type=float,
         default=[0.7, 0.8, 0.9],
-        help="Similarity thresholds to test. Default: 0.7 0.8 0.9",
+        help="Vector-store thresholds to test. Default: 0.7 0.8 0.9",
     )
     parser.add_argument(
         "--capacity",
         type=int,
         default=1000,
-        help="Maximum cache entries to keep during simulation. Default: 1000",
+        help="Maximum cache entries to keep during replay. Default: 1000",
     )
     parser.add_argument(
         "--max-prompts",

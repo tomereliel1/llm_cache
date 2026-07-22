@@ -2,7 +2,7 @@ from pathlib import Path
 
 from scripts.analyze_trace import (
     HitExample,
-    SimulationResult,
+    TraceReplayResult,
     build_report,
     run_project_vector_store,
 )
@@ -13,7 +13,7 @@ def test_build_report_includes_threshold_metrics_and_examples() -> None:
         trace_path=Path("datasets/quora_1000.h5"),
         capacity=1000,
         results=[
-            SimulationResult(
+            TraceReplayResult(
                 backend="project-orchestrator:chroma",
                 threshold=0.8,
                 total_prompts=2,
@@ -27,9 +27,8 @@ def test_build_report_includes_threshold_metrics_and_examples() -> None:
                     HitExample(
                         prompt="How do I reset my password?",
                         cached_prompt="How can I change my password?",
-                        similarity=0.9,
+                        score=0.9,
                         index=1,
-                        cached_index=0,
                     )
                 ],
             )
@@ -69,5 +68,5 @@ def test_project_vector_store_backend_uses_real_project_components() -> None:
     assert result.avg_hit_distance == 1.0
     assert result.best_hit_distance == 1.0
     assert result.worst_hit_distance == 1.0
-    assert result.examples[0].similarity == 1.0
+    assert result.examples[0].score == 1.0
     assert result.examples[0].cached_prompt == "How do I reset my password?"
