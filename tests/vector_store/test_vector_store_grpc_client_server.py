@@ -64,6 +64,7 @@ def test_vector_store_grpc_client_stores_and_searches(
     assert result.found is True
     assert result.prompt == "What is semantic caching?"
     assert result.response == "cached response"
+    assert result.score == pytest.approx(0.9938837)
 
 
 def test_vector_store_grpc_client_returns_miss(

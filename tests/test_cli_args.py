@@ -92,6 +92,7 @@ def test_app_config_from_args_uses_parsed_values() -> None:
     assert config.vector_store.collection_name == args.vector_store_collection
     assert config.vector_store.max_capacity == args.cache_max_capacity
     assert config.vector_store.eviction_policy == args.eviction_policy
+    assert config.vector_store.persistent is False
     assert config.vector_store.distance_function == args.vector_store_distance_function
 
 
@@ -117,6 +118,7 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
             "42",
             "--eviction-policy",
             "lru",
+            "--vector-store-persistent",
             "--vector-store-distance-function",
             "cosine",
         ]
@@ -127,6 +129,7 @@ def test_app_config_from_args_uses_vector_store_path_and_collection() -> None:
     assert config.vector_store.collection_name == "custom_collection"
     assert config.vector_store.max_capacity == 42
     assert config.vector_store.eviction_policy == "lru"
+    assert config.vector_store.persistent is True
     assert config.vector_store.distance_function == "cosine"
 
 

@@ -62,7 +62,12 @@ def build_vector_store_server_parser(
     parser.add_argument(
         "--path",
         default=DEFAULT_VECTOR_STORE_PATH,
-        help="Local persistence path for vector stores that support persistence.",
+        help="Local persistence path for vector stores when persistence is enabled.",
+    )
+    parser.add_argument(
+        "--persistent",
+        action="store_true",
+        help="Persist vector-store data between launches. Chroma is ephemeral by default.",
     )
     parser.add_argument(
         "--collection",
@@ -139,6 +144,7 @@ def parse_vector_store_server_args(
             collection_name=args.collection,
             max_capacity=args.capacity,
             eviction_policy=args.eviction_policy,
+            persistent=args.persistent,
             distance_function=args.distance_function,
         ),
     )

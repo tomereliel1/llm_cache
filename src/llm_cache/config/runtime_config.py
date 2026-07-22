@@ -200,7 +200,7 @@ def _validate_common_values(section_name: str, values: Mapping[str, Any]) -> Non
         if not 0 <= threshold <= 1:
             raise ConfigError(f"{section_name}.similarity_threshold must be between 0 and 1")
     for key, value in values.items():
-        if key in {"check_setup"} and not isinstance(value, bool):
+        if key in {"check_setup", "persistent"} and not isinstance(value, bool):
             raise ConfigError(f"{section_name}.{key} must be a boolean")
         if key in {
             "host",

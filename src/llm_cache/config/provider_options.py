@@ -110,7 +110,10 @@ SUPPORTED_VECTOR_STORE_PROVIDERS: dict[str, VectorStoreProviderOption] = {
         name="chroma",
         default_eviction_policy="lru",
         supported_eviction_policies=("default", "lru"),
-        description="Persistent Chroma vector store with configurable distance functions.",
+        description=(
+            "Chroma vector store using Chroma's default distance behavior. "
+            "Ephemeral unless persistence is enabled."
+        ),
     ),
 }
 

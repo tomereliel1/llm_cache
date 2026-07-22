@@ -59,6 +59,8 @@ Thumbs.db
 # Local data / databases
 
 data/
+datasets/
+reports/
 chroma/
 chroma_db/
 *.sqlite

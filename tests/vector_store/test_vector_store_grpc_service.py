@@ -38,6 +38,7 @@ def test_store_and_search_similar_over_grpc(vector_store_stub: VectorStoreServic
     assert search_reply.found is True
     assert search_reply.prompt == "What is semantic caching?"
     assert search_reply.response == "cached response"
+    assert search_reply.similarity_score == pytest.approx(0.9938837)
 
 
 def test_search_similar_returns_miss_over_grpc(

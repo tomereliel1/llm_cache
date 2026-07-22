@@ -20,7 +20,6 @@ services:
     command: python -m llm_cache.vector_store.grpc.server --config /app/configs/configuration.json
     volumes:
       - ./configs/configuration.json:/app/configs/configuration.json:ro
-      - chroma_data:/data/chroma
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50052), 2).close()"]
       interval: 5s
@@ -101,5 +100,4 @@ services:
       - ollama_data:/root/.ollama
 
 volumes:
-  chroma_data:
   ollama_data:

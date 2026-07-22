@@ -48,6 +48,7 @@ class VectorStoreGrpcService(VectorStoreServiceServicer):
             found=result.found,
             prompt=result.prompt,
             response=result.response,
+            similarity_score=result.score or 0.0,
         )
 
     def Store(

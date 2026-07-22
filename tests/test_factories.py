@@ -173,6 +173,7 @@ def test_create_vector_store_returns_chroma_vector_store(tmp_path) -> None:
 
     assert isinstance(vector_store, ChromaVectorStore)
     assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+    assert vector_store.persistent is False
 
 
 def test_create_vector_store_passes_similarity_threshold_to_provider() -> None:
@@ -195,6 +196,7 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
             collection_name="factory_test",
             max_capacity=42,
             eviction_policy="lru",
+            persistent=True,
             distance_function="cosine",
         )
     )
@@ -206,6 +208,7 @@ def test_create_vector_store_passes_chroma_config_to_provider(tmp_path) -> None:
     assert vector_store.max_capacity == 42
     assert vector_store.distance_function == "cosine"
     assert isinstance(vector_store.eviction_policy, LRUEvictionPolicy)
+    assert vector_store.persistent is True
 
 
 @pytest.mark.parametrize(

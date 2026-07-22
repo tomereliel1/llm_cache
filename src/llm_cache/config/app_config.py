@@ -33,6 +33,7 @@ class VectorStoreConfig:
     collection_name: str = "llm_cache"
     max_capacity: int = 1000
     eviction_policy: str = DEFAULT_EVICTION_POLICY
+    persistent: bool = False
     distance_function: str = DEFAULT_CHROMA_DISTANCE_FUNCTION
 
     def __post_init__(self) -> None:
@@ -41,7 +42,7 @@ class VectorStoreConfig:
                 f"similarity_threshold must be between 0 and 1. Got: {self.similarity_threshold}"
             )
 
-        if not self.persist_path.strip():
+        if self.persistent and not self.persist_path.strip():
             raise ConfigError("persist_path must be a non-empty string")
 
         if not self.collection_name.strip():
