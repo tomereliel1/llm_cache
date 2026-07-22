@@ -14,7 +14,7 @@ def test_build_report_includes_threshold_metrics_and_examples() -> None:
         capacity=1000,
         results=[
             SimulationResult(
-                backend="precomputed-vectors",
+                backend="project-orchestrator:chroma",
                 threshold=0.8,
                 total_prompts=2,
                 hits=1,
@@ -23,8 +23,6 @@ def test_build_report_includes_threshold_metrics_and_examples() -> None:
                 avg_hit_distance=0.1,
                 best_hit_distance=0.1,
                 worst_hit_distance=0.1,
-                p50_nearest_similarity=0.9,
-                p90_nearest_similarity=0.9,
                 examples=[
                     HitExample(
                         prompt="How do I reset my password?",

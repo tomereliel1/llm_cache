@@ -1,8 +1,8 @@
 # Trace analysis
 
 This workflow helps evaluate the semantic cache on real prompt traces without
-calling an LLM. It downloads prompts, embeds them, then simulates cache
-hit/miss decisions over the trace.
+calling an expensive LLM for every miss. It downloads prompts, embeds them, and
+then replays the prompt sequence through our cache code.
 
 ## Install dependencies
 
@@ -11,7 +11,7 @@ python -m pip install -e .[trace]
 ```
 
 This installs the Hugging Face dataset and HDF5 dependencies. It does not install
-`sentence-transformers` or Torch by default; the fetch script uses the project's
+`sentence-transformers` or Torch by default; the fetch script uses our
 existing Ollama embedding provider.
 
 ## Fetch a trace
@@ -45,23 +45,12 @@ The `quora` option uses the Parquet-backed
 
 ## Analyze the trace
 
-Fast offline simulation using the embeddings saved in the trace file:
+The analyzer replays the prompt texts through our embedder, orchestrator, and
+vector store:
 
 ```powershell
 python scripts/analyze_trace.py `
   --input datasets/quora_1000.h5 `
-  --thresholds 0.7 0.8 0.9 `
-  --capacity 1000 `
-  --output reports/quora_1000.md
-```
-
-Replay the same prompt texts through the actual project embedder and vector
-store implementation:
-
-```powershell
-python scripts/analyze_trace.py `
-  --input datasets/quora_1000.h5 `
-  --backend project-vector-store `
   --vector-store-provider chroma `
   --embedding-provider ollama `
   --embedding-model embeddinggemma `
@@ -70,15 +59,15 @@ python scripts/analyze_trace.py `
   --output reports/quora_1000.md
 ```
 
-The project-vector-store backend calls the real project code:
+This calls our project code:
 
 ```text
 OllamaEmbedder -> CacheOrchestrator -> ChromaVectorStore.search_similar/store
 ```
 
-This is slower than the precomputed-vector backend because it embeds every prompt
-again. It is useful when you want to demonstrate that the actual orchestrator,
-embedder, and vector store implementation work on the dataset prompts.
+It uses a fake trace LLM for cache misses because the report only needs to know
+whether the cache would avoid an LLM call. The fake LLM makes the run cheaper and
+more repeatable while still testing the embedder, orchestrator, and vector store.
 
 The report includes:
 
@@ -87,15 +76,10 @@ The report includes:
 - estimated LLM calls saved
 - average distance of accepted cache hits
 - best and worst accepted hit distance
-- real example prompt pairs that became cache hits
+- example prompt pairs that became cache hits
 
-In `project-vector-store` mode, hit/miss counts and hit scores come from the
-actual project implementation.
-
-Distance meaning depends on the selected backend:
-
-- `precomputed-vectors`: reports cosine similarity and `1 - similarity` distance.
-- `project-vector-store` with `chroma`: reports Chroma's returned distance. Lower is better.
+Hit/miss counts and hit scores come from our project implementation. With Chroma,
+the score is Chroma's returned distance. Lower is better.
 
 The threshold follows the vector store's own behavior. For the in-memory store,
 a hit means `similarity >= threshold`. For Chroma, a hit means
@@ -124,8 +108,8 @@ Example wording:
 
 ## Notes
 
-The analysis script uses saved embeddings and does not call the configured LLM.
-That makes it fast, reproducible, and cheap to run during experiments.
+The analysis path embeds the trace prompts and does not call the configured LLM.
+That keeps the run cheap enough for experiments.
 
 The fetch script does call the embedding provider. With the default Ollama provider,
 make sure Ollama is running and the embedding model is available:

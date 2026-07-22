@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,16 +17,15 @@ from llm_cache.vector_store import IVectorStore, VectorStoreResult
 def _load_optional_dependencies():
     try:
         import h5py
-        import numpy as np
     except ImportError as error:
         raise SystemExit(
             "Missing trace-analysis dependencies. Install them with:\n"
             "  python -m pip install -e .[trace]\n"
             "or:\n"
-            "  python -m pip install h5py numpy"
+            "  python -m pip install h5py"
         ) from error
 
-    return h5py, np
+    return h5py
 
 
 @dataclass(frozen=True)
@@ -50,8 +48,6 @@ class SimulationResult:
     avg_hit_distance: float | None
     best_hit_distance: float | None
     worst_hit_distance: float | None
-    p50_nearest_similarity: float | None
-    p90_nearest_similarity: float | None
     examples: list[HitExample]
 
 
@@ -97,7 +93,7 @@ def _missing_trace_message(path: Path) -> str:
 
 
 def load_trace_texts(path: Path, max_prompts: int | None) -> list[str]:
-    h5py, _ = _load_optional_dependencies()
+    h5py = _load_optional_dependencies()
 
     if not path.exists():
         raise SystemExit(_missing_trace_message(path))
@@ -111,113 +107,6 @@ def load_trace_texts(path: Path, max_prompts: int | None) -> list[str]:
         texts = texts[:max_prompts]
 
     return texts
-
-
-def load_trace(path: Path, max_prompts: int | None):
-    h5py, np = _load_optional_dependencies()
-
-    if not path.exists():
-        raise SystemExit(_missing_trace_message(path))
-
-    with h5py.File(path, "r") as file:
-        if "normalized_embeddings" in file:
-            vectors = file["normalized_embeddings"][:]
-        elif "normalized_embeds" in file:
-            vectors = file["normalized_embeds"][:]
-        else:
-            raise SystemExit(
-                f"{path} must contain 'normalized_embeddings' or 'normalized_embeds'"
-            )
-
-        if "text" not in file:
-            raise SystemExit(f"{path} must contain a 'text' dataset")
-        texts = _decode_texts(file["text"][:])
-
-    if max_prompts is not None:
-        vectors = vectors[:max_prompts]
-        texts = texts[:max_prompts]
-
-    vectors = np.asarray(vectors, dtype=np.float32)
-    if len(vectors) != len(texts):
-        raise SystemExit(
-            f"Trace has {len(vectors)} embeddings but {len(texts)} text entries"
-        )
-
-    return vectors, texts
-
-
-def _percentile(np, values: list[float], percentile: float) -> float | None:
-    if not values:
-        return None
-    return float(np.percentile(np.asarray(values, dtype=np.float32), percentile))
-
-
-def simulate_cache(
-    vectors,
-    texts: list[str],
-    *,
-    threshold: float,
-    capacity: int,
-    examples_count: int,
-) -> SimulationResult:
-    _, np = _load_optional_dependencies()
-
-    cache: OrderedDict[int, object] = OrderedDict()
-    hits = 0
-    misses = 0
-    hit_similarities: list[float] = []
-    nearest_similarities: list[float] = []
-    examples: list[HitExample] = []
-
-    for index, vector in enumerate(vectors):
-        if cache:
-            cached_indices = list(cache)
-            cached_vectors = np.asarray([cache[cached_index] for cached_index in cached_indices])
-            similarities = cached_vectors @ vector
-            best_position = int(np.argmax(similarities))
-            best_similarity = float(similarities[best_position])
-            best_index = cached_indices[best_position]
-            nearest_similarities.append(best_similarity)
-        else:
-            best_similarity = -1.0
-            best_index = -1
-
-        if best_similarity >= threshold:
-            hits += 1
-            hit_similarities.append(best_similarity)
-            cache.move_to_end(best_index)
-            if len(examples) < examples_count:
-                examples.append(
-                    HitExample(
-                        prompt=texts[index],
-                        cached_prompt=texts[best_index],
-                        similarity=best_similarity,
-                        index=index,
-                        cached_index=best_index,
-                    )
-                )
-        else:
-            misses += 1
-            cache[index] = vector
-            if len(cache) > capacity:
-                cache.popitem(last=False)
-
-    total = hits + misses
-    hit_distances = [1 - similarity for similarity in hit_similarities]
-    return SimulationResult(
-        backend="precomputed-vectors",
-        threshold=threshold,
-        total_prompts=total,
-        hits=hits,
-        misses=misses,
-        hit_rate=hits / total if total else 0,
-        avg_hit_distance=(sum(hit_distances) / len(hit_distances) if hit_distances else None),
-        best_hit_distance=min(hit_distances) if hit_distances else None,
-        worst_hit_distance=max(hit_distances) if hit_distances else None,
-        p50_nearest_similarity=_percentile(np, nearest_similarities, 50),
-        p90_nearest_similarity=_percentile(np, nearest_similarities, 90),
-        examples=examples,
-    )
 
 
 def run_project_vector_store(
@@ -294,8 +183,6 @@ def run_project_vector_store(
         avg_hit_distance=(sum(hit_scores) / len(hit_scores) if hit_scores else None),
         best_hit_distance=min(hit_scores) if hit_scores else None,
         worst_hit_distance=max(hit_scores) if hit_scores else None,
-        p50_nearest_similarity=None,
-        p90_nearest_similarity=None,
         examples=examples,
     )
 
@@ -403,20 +290,12 @@ def build_report(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Analyze a saved embedding trace and simulate semantic cache behavior."
+        description=(
+            "Replay a prompt trace through the real project embedder, "
+            "orchestrator, and vector store."
+        )
     )
     parser.add_argument("--input", required=True, help="Input .h5 trace file")
-    parser.add_argument(
-        "--backend",
-        choices=("precomputed-vectors", "project-vector-store"),
-        default="precomputed-vectors",
-        help=(
-            "Analysis backend. precomputed-vectors is fast and uses saved embeddings. "
-            "project-vector-store replays prompts through CacheOrchestrator and "
-            "the real project vector store. "
-            "Default: precomputed-vectors"
-        ),
-    )
     parser.add_argument(
         "--thresholds",
         nargs="+",
@@ -450,23 +329,23 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--embedding-provider",
         default="ollama",
-        help="Embedder provider for --backend project-vector-store. Default: ollama",
+        help="Embedder provider. Default: ollama",
     )
     parser.add_argument(
         "--embedding-model",
         default="embeddinggemma",
-        help="Embedder model for --backend project-vector-store. Default: embeddinggemma",
+        help="Embedder model. Default: embeddinggemma",
     )
     parser.add_argument(
         "--embedding-base-url",
         default=None,
-        help="Optional embedder base URL for --backend project-vector-store.",
+        help="Optional embedder base URL.",
     )
     parser.add_argument(
         "--vector-store-provider",
         choices=("in-memory", "chroma"),
         default="chroma",
-        help="Vector store provider for --backend project-vector-store. Default: chroma",
+        help="Vector store provider. Default: chroma",
     )
     return parser
 
@@ -486,33 +365,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             parser.error("--thresholds values must be between 0 and 1")
 
     trace_path = Path(args.input)
-    if args.backend == "precomputed-vectors":
-        vectors, texts = load_trace(trace_path, args.max_prompts)
-        results = [
-            simulate_cache(
-                vectors,
-                texts,
-                threshold=threshold,
-                capacity=args.capacity,
-                examples_count=args.examples,
-            )
-            for threshold in args.thresholds
-        ]
-    else:
-        texts = load_trace_texts(trace_path, args.max_prompts)
-        results = [
-            run_project_vector_store(
-                texts,
-                threshold=threshold,
-                capacity=args.capacity,
-                examples_count=args.examples,
-                embedding_provider=args.embedding_provider,
-                embedding_model=args.embedding_model,
-                embedding_base_url=args.embedding_base_url,
-                vector_store_provider=args.vector_store_provider,
-            )
-            for threshold in args.thresholds
-        ]
+    texts = load_trace_texts(trace_path, args.max_prompts)
+    results = [
+        run_project_vector_store(
+            texts,
+            threshold=threshold,
+            capacity=args.capacity,
+            examples_count=args.examples,
+            embedding_provider=args.embedding_provider,
+            embedding_model=args.embedding_model,
+            embedding_base_url=args.embedding_base_url,
+            vector_store_provider=args.vector_store_provider,
+        )
+        for threshold in args.thresholds
+    ]
     report = build_report(trace_path=trace_path, capacity=args.capacity, results=results)
 
     if args.output:

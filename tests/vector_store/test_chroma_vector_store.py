@@ -208,6 +208,7 @@ def test_rejects_existing_collection_with_different_distance_function(tmp_path) 
         persist_path=str(tmp_path),
         collection_name="mismatched_distance",
         distance_function="cosine",
+        persistent=True,
     )
 
     with pytest.raises(
@@ -220,6 +221,7 @@ def test_rejects_existing_collection_with_different_distance_function(tmp_path) 
             persist_path=str(tmp_path),
             collection_name="mismatched_distance",
             distance_function="l2",
+            persistent=True,
         )
 
 
