@@ -18,6 +18,12 @@ MAX_REQUEST_BYTES = 64 * 1024
 logger = logging.getLogger(__name__)
 
 
+def _script_json(payload: object) -> str:
+    return (
+        json.dumps(payload).replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run the web client for the orchestrator gRPC server."
@@ -51,12 +57,20 @@ def render_page(
     ready: bool = True,
 ) -> bytes:
     safe_prompt = html.escape(prompt, quote=True)
+    history_payload = "null"
     outcome = ""
     if result is not None:
         cache_label = "Cache hit" if result.cache_hit else "Fresh response"
         cache_class = "hit" if result.cache_hit else "miss"
+        history_payload = _script_json(
+            {
+                "prompt": prompt,
+                "response": result.response,
+                "cacheHit": result.cache_hit,
+            }
+        )
         outcome = f"""
-        <section class="answer" aria-live="polite">
+        <section id="latest-result" class="answer" aria-live="polite">
           <div class="answer-head">
             <h2>Answer</h2>
             <span class="badge {cache_class}">{cache_label}</span>
@@ -100,8 +114,10 @@ def render_page(
     .status::before {{ content: ''; width: 8px; height: 8px; border-radius: 50%; }}
     .status.ready::before {{ background: #4fe0a3; box-shadow: 0 0 10px #4fe0a3; }}
     .status.waiting::before {{ background: #ffbd66; box-shadow: 0 0 10px #ffbd66; }}
-    .panel, .answer {{ border: 1px solid #2c3757; border-radius: 18px; background: #121a30dd;
-      box-shadow: 0 24px 70px #0005; }}
+    .panel, .answer, .history {{
+      border: 1px solid #2c3757; border-radius: 18px; background: #121a30dd;
+      box-shadow: 0 24px 70px #0005;
+    }}
     .panel {{ padding: 22px; }}
     label {{ display: block; margin-bottom: 10px; font-weight: 700; }}
     textarea {{ width: 100%; min-height: 150px; resize: vertical; padding: 16px; color: #f5f7ff;
@@ -114,12 +130,27 @@ def render_page(
     button:hover {{ background: #b9c6ff; }}
     button:disabled {{ cursor: wait; opacity: .7; }}
     .answer {{ margin-top: 22px; padding: 22px; }}
+    .answer[hidden] {{ display: none; }}
     .answer-head {{ display: flex; align-items: center; justify-content: space-between;
       gap: 12px; }}
     h2 {{ margin: 0; font-size: 1.1rem; }}
     .badge {{ border-radius: 999px; padding: 6px 10px; font-size: .76rem; font-weight: 800; }}
     .hit {{ color: #89edc1; background: #163d34; }} .miss {{ color: #ffd591; background: #49351b; }}
     .response {{ margin-top: 18px; color: #dbe3f7; line-height: 1.68; white-space: pre-wrap; }}
+    .history {{ display: none; margin-top: 22px; padding: 18px; }}
+    .history.visible {{ display: block; }}
+    .history-list {{ display: grid; gap: 10px; margin-top: 14px; }}
+    .history-item {{ width: 100%; padding: 12px; border: 1px solid #2e3a5c; border-radius: 10px;
+      color: #dce5fa; background: #0d1427; text-align: left; }}
+    .history-item:hover {{ background: #141f39; }}
+    .history-row {{
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }}
+    .history-prompt {{ overflow: hidden; color: #f3f6ff; font-weight: 750; text-overflow: ellipsis;
+      white-space: nowrap; }}
+    .history-response {{ display: -webkit-box; overflow: hidden; margin-top: 8px; color: #9faed0;
+      font-size: .88rem; font-weight: 500; line-height: 1.45; -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2; }}
     .error {{ margin-top: 18px; padding: 14px 16px; color: #ffc0c6; background: #401d28;
       border: 1px solid #713341; border-radius: 12px; }}
     details {{ margin-top: 12px; color: #e1a9af; }}
@@ -144,13 +175,104 @@ def render_page(
       <div class="actions"><button type="submit"{disabled}>Send prompt</button></div>
     </form>
     {outcome}
+    <section id="selected-history-result" class="answer" aria-live="polite" hidden>
+      <div class="answer-head">
+        <h2>Answer</h2>
+        <span id="selected-history-badge" class="badge"></span>
+      </div>
+      <div id="selected-history-response" class="response"></div>
+    </section>
+    <section id="history" class="history" aria-labelledby="history-title">
+      <div class="answer-head">
+        <h2 id="history-title">Recent prompts</h2>
+        <span class="badge">Last 10</span>
+      </div>
+      <div id="history-list" class="history-list"></div>
+    </section>
     <footer>Connected through the orchestrator gRPC service</footer>
   </main>
   <script>
+    const latestResult = {history_payload};
+    const historyKey = 'llm-cache-session-history';
     const form = document.querySelector('form');
+    const promptInput = document.querySelector('#prompt');
     const button = document.querySelector('button');
     const status = document.querySelector('#backend-status');
+    const history = document.querySelector('#history');
+    const historyList = document.querySelector('#history-list');
+    const latestResultSection = document.querySelector('#latest-result');
+    const selectedHistoryResult = document.querySelector('#selected-history-result');
+    const selectedHistoryBadge = document.querySelector('#selected-history-badge');
+    const selectedHistoryResponse = document.querySelector('#selected-history-response');
+
+    function readHistory() {{
+      try {{
+        const stored = JSON.parse(sessionStorage.getItem(historyKey) || '[]');
+        return Array.isArray(stored) ? stored : [];
+      }} catch (_) {{
+        return [];
+      }}
+    }}
+
+    function writeHistory(items) {{
+      sessionStorage.setItem(historyKey, JSON.stringify(items.slice(0, 10)));
+    }}
+
+    function addLatestResult() {{
+      if (!latestResult) return;
+      const items = readHistory();
+      items.unshift({{
+        prompt: latestResult.prompt,
+        response: latestResult.response,
+        cacheHit: latestResult.cacheHit,
+      }});
+      writeHistory(items);
+    }}
+
+    function renderHistory() {{
+      const items = readHistory();
+      history.classList.toggle('visible', items.length > 0);
+      historyList.replaceChildren();
+      for (const item of items) {{
+        const entry = document.createElement('button');
+        entry.type = 'button';
+        entry.className = 'history-item';
+        entry.addEventListener('click', () => {{
+          promptInput.value = item.prompt || '';
+          if (latestResultSection) latestResultSection.hidden = true;
+          selectedHistoryBadge.className = `badge ${{item.cacheHit ? 'hit' : 'miss'}}`;
+          selectedHistoryBadge.textContent = item.cacheHit ? 'Cache hit' : 'Fresh response';
+          selectedHistoryResponse.textContent = item.response || '';
+          selectedHistoryResult.hidden = false;
+          promptInput.focus();
+        }});
+
+        const row = document.createElement('div');
+        row.className = 'history-row';
+
+        const prompt = document.createElement('div');
+        prompt.className = 'history-prompt';
+        prompt.textContent = item.prompt || '';
+
+        const cache = document.createElement('span');
+        cache.className = `badge ${{item.cacheHit ? 'hit' : 'miss'}}`;
+        cache.textContent = item.cacheHit ? 'Cache hit' : 'Fresh response';
+
+        const response = document.createElement('div');
+        response.className = 'history-response';
+        response.textContent = item.response || '';
+
+        row.append(prompt, cache);
+        entry.append(row, response);
+        historyList.append(entry);
+      }}
+    }}
+
+    addLatestResult();
+    renderHistory();
+
     form.addEventListener('submit', () => {{
+      selectedHistoryResult.hidden = true;
       button.disabled = true; button.textContent = 'Thinking…';
     }});
     async function checkHealth() {{
