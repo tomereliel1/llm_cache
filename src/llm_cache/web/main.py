@@ -58,7 +58,6 @@ def render_page(
 ) -> bytes:
     safe_prompt = html.escape(prompt, quote=True)
     history_payload = "null"
-    outcome = ""
     if result is not None:
         cache_label = "Cache hit" if result.cache_hit else "Fresh response"
         cache_class = "hit" if result.cache_hit else "miss"
@@ -69,23 +68,28 @@ def render_page(
                 "cacheHit": result.cache_hit,
             }
         )
-        outcome = f"""
-        <section id="latest-result" class="answer" aria-live="polite">
-          <div class="answer-head">
-            <h2>Answer</h2>
-            <span class="badge {cache_class}">{cache_label}</span>
-          </div>
-          <div class="response">{html.escape(result.response)}</div>
-        </section>"""
-    elif error:
-        details = ""
+        latest_hidden = ""
+        latest_badge_class = cache_class
+        latest_badge_text = cache_label
+        latest_response = html.escape(result.response)
+    else:
+        latest_hidden = " hidden"
+        latest_badge_class = ""
+        latest_badge_text = ""
+        latest_response = ""
+
+    error_hidden = " hidden"
+    error_message = ""
+    error_details = ""
+    if error:
+        error_hidden = ""
+        error_message = html.escape(error)
         if technical_details:
-            details = f"""
+            error_details = f"""
             <details>
               <summary>View technical details</summary>
               <pre>{html.escape(technical_details)}</pre>
             </details>"""
-        outcome = f'<div class="error" role="alert">{html.escape(error)}{details}</div>'
 
     status_class = "ready" if ready else "waiting"
     status_text = "Orchestrator reachable" if ready else "Waiting for orchestrator"
@@ -151,8 +155,14 @@ def render_page(
     .history-response {{ display: -webkit-box; overflow: hidden; margin-top: 8px; color: #9faed0;
       font-size: .88rem; font-weight: 500; line-height: 1.45; -webkit-box-orient: vertical;
       -webkit-line-clamp: 2; }}
+    .history-item[aria-expanded="true"] {{ border-color: #51699d; background: #111c34; }}
+    .history-item[aria-expanded="true"] .history-prompt {{ overflow: visible;
+      white-space: pre-wrap; }}
+    .history-item[aria-expanded="true"] .history-response {{ display: block; color: #dbe3f7;
+      white-space: pre-wrap; }}
     .error {{ margin-top: 18px; padding: 14px 16px; color: #ffc0c6; background: #401d28;
       border: 1px solid #713341; border-radius: 12px; }}
+    .error[hidden] {{ display: none; }}
     details {{ margin-top: 12px; color: #e1a9af; }}
     summary {{ width: fit-content; cursor: pointer; font-weight: 700; }}
     pre {{ overflow-x: auto; margin: 10px 0 0; padding: 12px; color: #f2d9dc;
@@ -174,13 +184,15 @@ def render_page(
         placeholder="What would you like to know?">{safe_prompt}</textarea>
       <div class="actions"><button type="submit"{disabled}>Send prompt</button></div>
     </form>
-    {outcome}
-    <section id="selected-history-result" class="answer" aria-live="polite" hidden>
+    <div id="form-error" class="error" role="alert"{error_hidden}>
+      {error_message}{error_details}
+    </div>
+    <section id="latest-result" class="answer" aria-live="polite"{latest_hidden}>
       <div class="answer-head">
         <h2>Answer</h2>
-        <span id="selected-history-badge" class="badge"></span>
+        <span id="latest-result-badge" class="badge {latest_badge_class}">{latest_badge_text}</span>
       </div>
-      <div id="selected-history-response" class="response"></div>
+      <div id="latest-result-response" class="response">{latest_response}</div>
     </section>
     <section id="history" class="history" aria-labelledby="history-title">
       <div class="answer-head">
@@ -201,9 +213,9 @@ def render_page(
     const history = document.querySelector('#history');
     const historyList = document.querySelector('#history-list');
     const latestResultSection = document.querySelector('#latest-result');
-    const selectedHistoryResult = document.querySelector('#selected-history-result');
-    const selectedHistoryBadge = document.querySelector('#selected-history-badge');
-    const selectedHistoryResponse = document.querySelector('#selected-history-response');
+    const latestResultBadge = document.querySelector('#latest-result-badge');
+    const latestResultResponse = document.querySelector('#latest-result-response');
+    const formError = document.querySelector('#form-error');
 
     function readHistory() {{
       try {{
@@ -218,15 +230,36 @@ def render_page(
       sessionStorage.setItem(historyKey, JSON.stringify(items.slice(0, 10)));
     }}
 
-    function addLatestResult() {{
-      if (!latestResult) return;
+    function addHistoryItem(item) {{
       const items = readHistory();
       items.unshift({{
-        prompt: latestResult.prompt,
-        response: latestResult.response,
-        cacheHit: latestResult.cacheHit,
+        prompt: item.prompt,
+        response: item.response,
+        cacheHit: item.cacheHit,
       }});
       writeHistory(items);
+    }}
+
+    function addLatestResult() {{
+      if (!latestResult) return;
+      addHistoryItem(latestResult);
+    }}
+
+    function showLatestResult(item) {{
+      if (latestResultSection) latestResultSection.hidden = false;
+      latestResultBadge.className = `badge ${{item.cacheHit ? 'hit' : 'miss'}}`;
+      latestResultBadge.textContent = item.cacheHit ? 'Cache hit' : 'Fresh response';
+      latestResultResponse.textContent = item.response || '';
+    }}
+
+    function showError(message) {{
+      formError.textContent = message;
+      formError.hidden = false;
+    }}
+
+    function clearError() {{
+      formError.replaceChildren();
+      formError.hidden = true;
     }}
 
     function renderHistory() {{
@@ -237,14 +270,13 @@ def render_page(
         const entry = document.createElement('button');
         entry.type = 'button';
         entry.className = 'history-item';
+        entry.setAttribute('aria-expanded', 'false');
         entry.addEventListener('click', () => {{
-          promptInput.value = item.prompt || '';
-          if (latestResultSection) latestResultSection.hidden = true;
-          selectedHistoryBadge.className = `badge ${{item.cacheHit ? 'hit' : 'miss'}}`;
-          selectedHistoryBadge.textContent = item.cacheHit ? 'Cache hit' : 'Fresh response';
-          selectedHistoryResponse.textContent = item.response || '';
-          selectedHistoryResult.hidden = false;
-          promptInput.focus();
+          const isExpanded = entry.getAttribute('aria-expanded') === 'true';
+          for (const historyItem of historyList.querySelectorAll('.history-item')) {{
+            historyItem.setAttribute('aria-expanded', 'false');
+          }}
+          entry.setAttribute('aria-expanded', String(!isExpanded));
         }});
 
         const row = document.createElement('div');
@@ -271,9 +303,38 @@ def render_page(
     addLatestResult();
     renderHistory();
 
-    form.addEventListener('submit', () => {{
-      selectedHistoryResult.hidden = true;
+    form.addEventListener('submit', async (event) => {{
+      event.preventDefault();
+      clearError();
       button.disabled = true; button.textContent = 'Thinking…';
+      try {{
+        const response = await fetch('/', {{
+          method: 'POST',
+          headers: {{
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          }},
+          body: new URLSearchParams(new FormData(form)),
+        }});
+        const payload = await response.json();
+        if (!response.ok) {{
+          showError(payload.error || 'Request failed.');
+          return;
+        }}
+        const item = {{
+          prompt: payload.prompt || promptInput.value.trim(),
+          response: payload.response || '',
+          cacheHit: Boolean(payload.cacheHit),
+        }};
+        showLatestResult(item);
+        addHistoryItem(item);
+        renderHistory();
+      }} catch (_) {{
+        showError('The request could not be completed. Please try again.');
+      }} finally {{
+        button.textContent = 'Send prompt';
+        button.disabled = status.classList.contains('waiting');
+      }}
     }});
     async function checkHealth() {{
       try {{
@@ -331,10 +392,20 @@ def make_handler(
 
             form = parse_qs(self.rfile.read(length).decode("utf-8", errors="replace"))
             prompt = form.get("prompt", [""])[0].strip()
+            wants_json = self._wants_json()
             if not prompt:
+                if wants_json:
+                    self._send_json({"error": "Prompt must not be empty."}, status=400)
+                    return
                 self._send_page(render_page(error="Prompt must not be empty."), status=400)
                 return
             if not is_ready():
+                if wants_json:
+                    self._send_json(
+                        {"error": "The backend is not ready yet. Please try again shortly."},
+                        status=503,
+                    )
+                    return
                 self._send_page(
                     render_page(
                         prompt=prompt,
@@ -350,10 +421,23 @@ def make_handler(
                     logger.info("web_prompt_received prompt_length=%s", len(prompt))
                     result = query(prompt)
                     logger.info("web_prompt_completed cache_hit=%s", result.cache_hit)
+                    if wants_json:
+                        self._send_json(
+                            {
+                                "prompt": prompt,
+                                "response": result.response,
+                                "cacheHit": result.cache_hit,
+                            },
+                            status=200,
+                        )
+                        return
                     page = render_page(prompt=prompt, result=result)
                     self._send_page(page)
                 except RuntimeError as error:
                     logger.exception("web_prompt_failed")
+                    if wants_json:
+                        self._send_json({"error": str(error)}, status=502)
+                        return
                     self._send_page(
                         render_page(
                             prompt=prompt,
@@ -363,7 +447,10 @@ def make_handler(
                         status=502,
                     )
 
-        def _send_json(self, payload: dict[str, str], status: int) -> None:
+        def _wants_json(self) -> bool:
+            return "application/json" in self.headers.get("Accept", "")
+
+        def _send_json(self, payload: dict[str, object], status: int) -> None:
             body = json.dumps(payload).encode("utf-8")
             self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
