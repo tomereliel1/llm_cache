@@ -289,8 +289,7 @@ def build_report(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Replay a prompt trace through our project embedder, "
-            "orchestrator, and vector store."
+            "Replay a prompt trace through our project embedder, orchestrator, and vector store."
         )
     )
     parser.add_argument("--input", required=True, help="Input .h5 trace file")
