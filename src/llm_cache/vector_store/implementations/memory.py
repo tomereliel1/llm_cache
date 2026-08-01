@@ -23,7 +23,11 @@ class _CacheEntry:
 
 
 class InMemoryVectorStore(IVectorStore):
-    """Simple local vector store using cosine similarity."""
+    """Process-local vector store for development, tests, and simple deployments.
+
+    Entries are kept in memory only and are lost when the process exits. Similarity scores
+    use cosine similarity, and capacity is enforced through the configured eviction policy.
+    """
 
     def __init__(
         self,
@@ -31,6 +35,16 @@ class InMemoryVectorStore(IVectorStore):
         max_capacity: int = 1000,
         eviction_policy: IEvictionPolicy | None = None,
     ) -> None:
+        """Create an in-memory vector store.
+
+        Args:
+            similarity_threshold: Minimum cosine similarity required for a cache hit.
+            max_capacity: Maximum number of entries retained by the store.
+            eviction_policy: Policy used when inserting into a full cache. Defaults to LRU.
+
+        Raises:
+            ValueError: If the threshold is outside [0, 1] or capacity is smaller than 1.
+        """
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
 
@@ -45,6 +59,19 @@ class InMemoryVectorStore(IVectorStore):
         self._lock = RLock()
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
+        """Find the best cached response for an embedding vector.
+
+        Args:
+            vector: Prompt embedding vector to compare against cached entries.
+
+        Returns:
+            VectorStoreResult with the best matching entry when it satisfies the
+            configured threshold, otherwise a miss result.
+
+        Raises:
+            ValueError: If the vector is empty, non-finite, dimensionally incompatible
+            with stored entries, or a zero vector.
+        """
         self._validate_vector(vector)
 
         with self._lock:
@@ -72,6 +99,19 @@ class InMemoryVectorStore(IVectorStore):
             return VectorStoreResult(found=False, prompt="", response="")
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
+        """Store a cache entry in memory.
+
+        Args:
+            prompt: Prompt text associated with the response.
+            response: Response text to cache.
+            vector: Embedding vector for the prompt.
+
+        Returns:
+            Generated cache entry identifier.
+
+        Raises:
+            ValueError: If the prompt, response, or vector is invalid.
+        """
         if not prompt or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
@@ -98,6 +138,11 @@ class InMemoryVectorStore(IVectorStore):
             return entry_id
 
     def health_check(self) -> HealthCheckResult:
+        """Report readiness and current cache occupancy.
+
+        Returns:
+            Successful HealthCheckResult for the in-memory store.
+        """
         with self._lock:
             entry_count = len(self._entries)
 
@@ -140,6 +185,18 @@ class InMemoryVectorStore(IVectorStore):
 
     @staticmethod
     def _cosine_similarity(left: list[float], right: list[float]) -> float:
+        """Compute cosine similarity for two validated embedding vectors.
+
+        Args:
+            left: First embedding vector.
+            right: Second embedding vector.
+
+        Returns:
+            Cosine similarity in the range [-1, 1].
+
+        Raises:
+            ValueError: If vector dimensions differ or either vector is zero.
+        """
         if len(left) != len(right):
             raise ValueError("vectors must have the same dimension")
 
@@ -156,6 +213,14 @@ class InMemoryVectorStore(IVectorStore):
 
     @staticmethod
     def _validate_vector(vector: list[float]) -> None:
+        """Validate vector shape and numeric values accepted by this store.
+
+        Args:
+            vector: Embedding vector to validate.
+
+        Raises:
+            ValueError: If the vector is empty, contains non-finite values, or is zero.
+        """
         if not vector:
             raise ValueError("vector must not be empty")
 

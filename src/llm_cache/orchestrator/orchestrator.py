@@ -10,24 +10,56 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class QueryResult:
+    """Result returned by a cache query.
+
+    Attributes:
+        response: Answer returned to the caller.
+        cache_hit: Whether the response came from a cached entry.
+        score: Optional similarity score reported by the vector store for cache hits.
+    """
+
     response: str
     cache_hit: bool
     score: float | None = None
 
 
 class CacheOrchestrator:
+    """Coordinate embedding, semantic lookup, LLM generation, and cache storage.
+
+    The orchestrator depends only on provider interfaces, so callers may inject local
+    providers, test doubles, or gRPC client adapters.
+    """
+
     def __init__(
         self,
         embedder: IEmbedder,
         llm_provider: ILLMProvider,
         vector_store: IVectorStore,
     ) -> None:
+        """Create an orchestrator from provider implementations.
+
+        Args:
+            embedder: Component that converts prompts to embedding vectors.
+            llm_provider: Component that generates answers on cache misses.
+            vector_store: Component that searches and stores cached prompt responses.
+        """
         self._embedder = embedder
         self._llm_provider = llm_provider
         self._vector_store = vector_store
 
     def query(self, prompt: str) -> QueryResult:
-        """Return a cached answer when possible, otherwise generate and store a new answer."""
+        """Answer a prompt using the semantic cache when possible.
+
+        Args:
+            prompt: User prompt to answer. Surrounding whitespace is ignored.
+
+        Returns:
+            QueryResult describing the answer and whether it came from the cache.
+
+        Raises:
+            ValueError: If the prompt is empty or contains only whitespace.
+            RuntimeError: If an injected provider reports a runtime failure.
+        """
         if not prompt or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 

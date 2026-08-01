@@ -17,7 +17,11 @@ from llm_cache.request_context import (
 
 
 class OrchestratorGrpcClient:
-    """Client adapter for the public orchestrator gRPC service."""
+    """Client adapter for the public orchestrator gRPC service.
+
+    The adapter exposes the same query shape used by local callers while handling request-id
+    propagation and user-facing error translation for unavailable or timed-out services.
+    """
 
     def __init__(
         self,
@@ -25,12 +29,33 @@ class OrchestratorGrpcClient:
         timeout_seconds: float = 30.0,
         channel: grpc.Channel | None = None,
     ) -> None:
+        """Create an orchestrator gRPC client.
+
+        Args:
+            target: gRPC target address, such as ``"localhost:50050"``.
+            timeout_seconds: Deadline used for SubmitPrompt requests.
+            channel: Optional pre-created channel, mainly for tests. When omitted, the
+                client owns and closes its channel.
+        """
         self._timeout_seconds = timeout_seconds
         self._owns_channel = channel is None
         self._channel = channel or grpc.insecure_channel(target)
         self._stub = orchestrator_pb2_grpc.OrchestratorServiceStub(self._channel)
 
     def query(self, prompt: str) -> QueryResult:
+        """Submit a prompt to the orchestrator service.
+
+        Args:
+            prompt: User prompt to answer.
+
+        Returns:
+            QueryResult returned by the orchestrator service.
+
+        Raises:
+            OrchestratorClientError: If the orchestrator is unavailable or the request
+            deadline is exceeded.
+            RuntimeError: If the gRPC call fails with another status.
+        """
         if get_current_request_id() is None:
             with request_context(new_request_id()):
                 return self.query(prompt)
@@ -70,7 +95,14 @@ class OrchestratorGrpcClient:
         return QueryResult(response=reply.response, cache_hit=reply.cache_hit)
 
     def is_ready(self, timeout_seconds: float = 1.0) -> bool:
-        """Return whether the orchestrator channel becomes ready before the timeout."""
+        """Check whether the orchestrator channel is ready.
+
+        Args:
+            timeout_seconds: Maximum time to wait for channel readiness.
+
+        Returns:
+            True when the channel becomes ready before the timeout, otherwise False.
+        """
         try:
             grpc.channel_ready_future(self._channel).result(timeout=timeout_seconds)
         except grpc.FutureTimeoutError:
@@ -78,6 +110,7 @@ class OrchestratorGrpcClient:
         return True
 
     def close(self) -> None:
+        """Close the owned gRPC channel, if this client created one."""
         if self._owns_channel:
             self._channel.close()
 
