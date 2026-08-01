@@ -78,13 +78,13 @@ def test_render_page_serializes_successful_result_for_session_history() -> None:
     assert '"cacheHit": false' in page
 
 
-def test_render_page_shows_selected_history_response_on_click() -> None:
+def test_render_page_expands_selected_history_item_in_place() -> None:
     page = render_page().decode()
 
-    assert 'id="selected-history-result"' in page
-    assert "if (latestResultSection) latestResultSection.hidden = true;" in page
-    assert "selectedHistoryResponse.textContent = item.response || '';" in page
-    assert "selectedHistoryResult.hidden = false;" in page
+    assert 'entry.setAttribute(\'aria-expanded\', \'false\');' in page
+    assert "historyList.querySelectorAll('.history-item')" in page
+    assert "entry.setAttribute('aria-expanded', String(!isExpanded));" in page
+    assert "promptInput.focus();" not in page
 
 
 def test_render_page_does_not_save_errors_to_session_history() -> None:
