@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from threading import RLock
 from time import monotonic
 
 from llm_cache.health.health_check_result import HealthCheckResult
@@ -41,32 +42,34 @@ class InMemoryVectorStore(IVectorStore):
         self.eviction_policy = eviction_policy or LRUEvictionPolicy()
         self._entries: list[_CacheEntry] = []
         self._next_id = 1
+        self._lock = RLock()
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
         self._validate_vector(vector)
 
-        if not self._entries:
+        with self._lock:
+            if not self._entries:
+                return VectorStoreResult(found=False, prompt="", response="")
+
+            best_entry = self._entries[0]
+            best_score = self._cosine_similarity(vector, best_entry.vector)
+
+            for entry in self._entries[1:]:
+                score = self._cosine_similarity(vector, entry.vector)
+                if score > best_score:
+                    best_entry = entry
+                    best_score = score
+
+            if best_score >= self.similarity_threshold:
+                self._touch(best_entry.id)
+                return VectorStoreResult(
+                    found=True,
+                    prompt=best_entry.prompt,
+                    response=best_entry.response,
+                    score=best_score,
+                )
+
             return VectorStoreResult(found=False, prompt="", response="")
-
-        best_entry = self._entries[0]
-        best_score = self._cosine_similarity(vector, best_entry.vector)
-
-        for entry in self._entries[1:]:
-            score = self._cosine_similarity(vector, entry.vector)
-            if score > best_score:
-                best_entry = entry
-                best_score = score
-
-        if best_score >= self.similarity_threshold:
-            self._touch(best_entry.id)
-            return VectorStoreResult(
-                found=True,
-                prompt=best_entry.prompt,
-                response=best_entry.response,
-                score=best_score,
-            )
-
-        return VectorStoreResult(found=False, prompt="", response="")
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
         if not prompt or not prompt.strip():
@@ -76,29 +79,32 @@ class InMemoryVectorStore(IVectorStore):
             raise ValueError("response must be a non-empty string")
 
         self._validate_vector(vector)
-        self._evict_if_needed()
+        with self._lock:
+            self._evict_if_needed()
 
-        entry_id = f"entry-{self._next_id}"
-        self._next_id += 1
-        now = monotonic()
-        self._entries.append(
-            _CacheEntry(
-                id=entry_id,
-                prompt=prompt.strip(),
-                response=response,
-                vector=list(vector),
-                created_at=now,
-                last_accessed_at=now,
+            entry_id = f"entry-{self._next_id}"
+            self._next_id += 1
+            now = monotonic()
+            self._entries.append(
+                _CacheEntry(
+                    id=entry_id,
+                    prompt=prompt.strip(),
+                    response=response,
+                    vector=list(vector),
+                    created_at=now,
+                    last_accessed_at=now,
+                )
             )
-        )
-        return entry_id
+            return entry_id
 
     def health_check(self) -> HealthCheckResult:
+        with self._lock:
+            entry_count = len(self._entries)
+
         return HealthCheckResult.ok(
             name="vector-store:in-memory",
             message=(
-                "In-memory vector store is ready "
-                f"with {len(self._entries)}/{self.max_capacity} entries"
+                f"In-memory vector store is ready with {entry_count}/{self.max_capacity} entries"
             ),
         )
 
@@ -152,6 +158,9 @@ class InMemoryVectorStore(IVectorStore):
     def _validate_vector(vector: list[float]) -> None:
         if not vector:
             raise ValueError("vector must not be empty")
+
+        if not all(math.isfinite(value) for value in vector):
+            raise ValueError("vector values must be finite numbers")
 
         if all(value == 0 for value in vector):
             raise ValueError("vectors must not be zero vectors")

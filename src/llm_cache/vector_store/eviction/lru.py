@@ -7,4 +7,7 @@ class LRUEvictionPolicy(IEvictionPolicy):
         if not entries:
             raise ValueError("entries must not be empty")
 
-        return min(entries, key=lambda entry: entry.last_accessed_at).id
+        return min(
+            entries,
+            key=lambda entry: (entry.last_accessed_at, entry.created_at, entry.id),
+        ).id

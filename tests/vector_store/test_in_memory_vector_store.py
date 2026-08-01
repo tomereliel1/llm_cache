@@ -1,6 +1,10 @@
+import math
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 from llm_cache.vector_store import CacheEntryMetadata, IEvictionPolicy, InMemoryVectorStore
+from llm_cache.vector_store.eviction.lru import LRUEvictionPolicy
 
 
 class _FirstEntryEvictionPolicy(IEvictionPolicy):
@@ -57,6 +61,18 @@ def test_search_returns_nearest_cached_response() -> None:
     assert result.found is True
     assert result.prompt == "second"
     assert result.response == "second response"
+
+
+def test_search_uses_first_inserted_entry_for_equal_similarity_tie() -> None:
+    vector_store = InMemoryVectorStore(similarity_threshold=0.8)
+    vector_store.store(prompt="first", response="first response", vector=[1.0, 0.0])
+    vector_store.store(prompt="second", response="second response", vector=[1.0, 0.0])
+
+    result = vector_store.search_similar([1.0, 0.0])
+
+    assert result.found is True
+    assert result.prompt == "first"
+    assert result.response == "first response"
 
 
 def test_store_returns_incrementing_entry_ids() -> None:
@@ -144,3 +160,41 @@ def test_rejects_zero_vectors() -> None:
 
     with pytest.raises(ValueError, match="zero vectors"):
         vector_store.store(prompt="prompt", response="response", vector=[0.0, 0.0])
+
+
+@pytest.mark.parametrize("invalid_value", [math.nan, math.inf, -math.inf])
+def test_rejects_non_finite_vectors(invalid_value: float) -> None:
+    vector_store = InMemoryVectorStore()
+
+    with pytest.raises(ValueError, match="finite"):
+        vector_store.store(prompt="prompt", response="response", vector=[1.0, invalid_value])
+
+
+def test_lru_eviction_tie_breaks_by_created_at_then_id() -> None:
+    policy = LRUEvictionPolicy()
+
+    victim = policy.choose_victim(
+        [
+            CacheEntryMetadata(id="entry-2", created_at=20.0, last_accessed_at=100.0),
+            CacheEntryMetadata(id="entry-1", created_at=10.0, last_accessed_at=100.0),
+        ]
+    )
+
+    assert victim == "entry-1"
+
+
+def test_concurrent_writes_do_not_exceed_configured_capacity() -> None:
+    vector_store = InMemoryVectorStore(max_capacity=3, similarity_threshold=1.0)
+
+    def store(index: int) -> None:
+        vector_store.store(
+            prompt=f"prompt {index}",
+            response=f"response {index}",
+            vector=[float(index + 1), 1.0],
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(store, range(50)))
+
+    assert len(vector_store._entries) == 3
+    assert len({entry.id for entry in vector_store._entries}) == 3

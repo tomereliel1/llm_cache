@@ -53,7 +53,7 @@ def test_vector_store_grpc_client_stores_and_searches(
     vector_store_grpc_target: str,
 ) -> None:
     with VectorStoreGrpcClient(target=vector_store_grpc_target) as client:
-        client.store(
+        entry_id = client.store(
             prompt="What is semantic caching?",
             response="cached response",
             vector=[1.0, 0.0],
@@ -61,6 +61,7 @@ def test_vector_store_grpc_client_stores_and_searches(
 
         result = client.search_similar([0.9, 0.1])
 
+    assert entry_id == "entry-1"
     assert result.found is True
     assert result.prompt == "What is semantic caching?"
     assert result.response == "cached response"
