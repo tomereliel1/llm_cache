@@ -81,7 +81,7 @@ def test_render_page_serializes_successful_result_for_session_history() -> None:
 def test_render_page_expands_selected_history_item_in_place() -> None:
     page = render_page().decode()
 
-    assert 'entry.setAttribute(\'aria-expanded\', \'false\');' in page
+    assert "entry.setAttribute('aria-expanded', 'false');" in page
     assert "historyList.querySelectorAll('.history-item')" in page
     assert "entry.setAttribute('aria-expanded', String(!isExpanded));" in page
     assert "promptInput.focus();" not in page

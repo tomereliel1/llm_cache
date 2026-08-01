@@ -65,17 +65,17 @@ class VectorStoreGrpcService(VectorStoreServiceServicer):
                 len(request.vector),
             )
             try:
-                self._vector_store.store(
+                entry_id = self._vector_store.store(
                     prompt=request.prompt,
                     response=request.response,
                     vector=list(request.vector),
                 )
-                logger.info("vector_store_completed")
+                logger.info("vector_store_completed entry_id=%s", entry_id)
             except ValueError as error:
                 logger.warning("vector_store_invalid error=%s", error)
                 context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(error))
 
-        return StoreReply(success=True)
+        return StoreReply(success=True, entry_id=entry_id)
 
 
 def add_vector_store_to_server(vector_store: IVectorStore, server: grpc.Server) -> None:

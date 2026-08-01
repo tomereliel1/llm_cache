@@ -72,7 +72,7 @@ class VectorStoreGrpcClient(IVectorStore):
         if not reply.success:
             raise RuntimeError("Vector store gRPC store call did not succeed")
 
-        return ""
+        return reply.entry_id
 
     def close(self) -> None:
         if self._owns_channel:

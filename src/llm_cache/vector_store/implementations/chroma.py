@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from threading import RLock
 from time import monotonic
 from typing import Any, cast
 from uuid import uuid4
@@ -50,6 +52,7 @@ class ChromaVectorStore(IVectorStore):
         self.eviction_policy = eviction_policy
         self.persistent = persistent
         self.distance_function = distance_function
+        self._lock = RLock()
 
         if persistent:
             self._client = chromadb.PersistentClient(path=persist_path)
@@ -67,38 +70,39 @@ class ChromaVectorStore(IVectorStore):
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
         self._validate_vector(vector)
 
-        if self._collection.count() == 0:
-            return VectorStoreResult(found=False, prompt="", response="")
+        with self._lock:
+            if self._collection.count() == 0:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        results = self._collection.query(
-            query_embeddings=[vector],
-            n_results=1,
-            include=["documents", "metadatas", "distances"],
-        )
+            results = self._collection.query(
+                query_embeddings=[vector],
+                n_results=1,
+                include=["documents", "metadatas", "distances"],
+            )
 
-        ids = results.get("ids")
-        distances = results.get("distances")
-        documents = results.get("documents")
-        metadatas = results.get("metadatas")
-        if not ids or not ids[0] or not distances or not documents or not metadatas:
-            return VectorStoreResult(found=False, prompt="", response="")
+            ids = results.get("ids")
+            distances = results.get("distances")
+            documents = results.get("documents")
+            metadatas = results.get("metadatas")
+            if not ids or not ids[0] or not distances or not documents or not metadatas:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        entry_id = ids[0][0]
-        distance = distances[0][0]
-        if distance > self.similarity_threshold:
-            return VectorStoreResult(found=False, prompt="", response="")
+            entry_id = ids[0][0]
+            distance = distances[0][0]
+            if distance > self.similarity_threshold:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        document = documents[0][0]
-        metadata = cast(dict[str, Any], metadatas[0][0] or {})
-        response = metadata.get("response", "")
-        self._touch(entry_id, metadata)
+            document = documents[0][0]
+            metadata = cast(dict[str, Any], metadatas[0][0] or {})
+            response = metadata.get("response", "")
+            self._touch(entry_id, metadata)
 
-        return VectorStoreResult(
-            found=True,
-            prompt=document,
-            response=str(response),
-            score=float(distance),
-        )
+            return VectorStoreResult(
+                found=True,
+                prompt=document,
+                response=str(response),
+                score=float(distance),
+            )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
         clean_prompt = prompt.strip()
@@ -109,27 +113,29 @@ class ChromaVectorStore(IVectorStore):
             raise ValueError("response must be a non-empty string")
 
         self._validate_vector(vector)
-        self._evict_if_needed()
+        with self._lock:
+            self._evict_if_needed()
 
-        entry_id = str(uuid4())
-        now = monotonic()
-        self._collection.add(
-            ids=[entry_id],
-            embeddings=[vector],
-            documents=[clean_prompt],
-            metadatas=[
-                {
-                    "response": response,
-                    "created_at": now,
-                    "last_accessed_at": now,
-                }
-            ],
-        )
-        return entry_id
+            entry_id = str(uuid4())
+            now = monotonic()
+            self._collection.add(
+                ids=[entry_id],
+                embeddings=[vector],
+                documents=[clean_prompt],
+                metadatas=[
+                    {
+                        "response": response,
+                        "created_at": now,
+                        "last_accessed_at": now,
+                    }
+                ],
+            )
+            return entry_id
 
     def health_check(self) -> HealthCheckResult:
         try:
-            entry_count = self._collection.count()
+            with self._lock:
+                entry_count = self._collection.count()
         except Exception as error:
             return HealthCheckResult.fail(
                 name="vector-store:chroma",
@@ -197,6 +203,9 @@ class ChromaVectorStore(IVectorStore):
     def _validate_vector(vector: list[float]) -> None:
         if not vector:
             raise ValueError("vector must not be empty")
+
+        if not all(math.isfinite(value) for value in vector):
+            raise ValueError("vector values must be finite numbers")
 
         if all(value == 0 for value in vector):
             raise ValueError("vectors must not be zero vectors")
