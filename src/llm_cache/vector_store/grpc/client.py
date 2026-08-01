@@ -12,7 +12,7 @@ from llm_cache.vector_store.interface import IVectorStore, VectorStoreResult
 
 
 class VectorStoreGrpcClient(IVectorStore):
-    """Client-side adapter that makes a remote vector store service look like IVectorStore."""
+    """Client adapter that exposes a remote vector-store service as ``IVectorStore``."""
 
     def __init__(
         self,
@@ -20,6 +20,14 @@ class VectorStoreGrpcClient(IVectorStore):
         timeout_seconds: float = 30.0,
         channel: grpc.Channel | None = None,
     ) -> None:
+        """Create a vector-store gRPC client.
+
+        Args:
+            target: gRPC target address for the vector-store service.
+            timeout_seconds: Deadline used for search and store requests.
+            channel: Optional existing channel, mainly for tests. When omitted, this
+                client creates and owns its channel.
+        """
         self._target = target
         self._timeout_seconds = timeout_seconds
         self._owns_channel = channel is None
@@ -27,6 +35,19 @@ class VectorStoreGrpcClient(IVectorStore):
         self._stub = vector_store_pb2_grpc.VectorStoreServiceStub(self._channel)
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
+        """Search for a similar cached entry through the remote vector store.
+
+        Args:
+            vector: Embedding vector to search for.
+
+        Returns:
+            VectorStoreResult reported by the vector-store service.
+
+        Raises:
+            ProviderUnavailableError: If the vector-store service cannot be reached.
+            ProviderTimeoutError: If the request exceeds the configured deadline.
+            RuntimeError: If the service returns another gRPC error status.
+        """
         request = vector_store_pb2.SearchSimilarRequest(vector=vector)
         metadata = grpc_metadata_for_current_request()
 
@@ -50,6 +71,21 @@ class VectorStoreGrpcClient(IVectorStore):
         )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
+        """Store a cache entry through the remote vector store.
+
+        Args:
+            prompt: Prompt text associated with the response.
+            response: Response text to cache.
+            vector: Embedding vector for the prompt.
+
+        Returns:
+            Entry identifier returned by the vector-store service.
+
+        Raises:
+            ProviderUnavailableError: If the vector-store service cannot be reached.
+            ProviderTimeoutError: If the request exceeds the configured deadline.
+            RuntimeError: If the service returns an error status or unsuccessful reply.
+        """
         request = vector_store_pb2.StoreRequest(
             prompt=prompt,
             response=response,
@@ -75,6 +111,7 @@ class VectorStoreGrpcClient(IVectorStore):
         return reply.entry_id
 
     def close(self) -> None:
+        """Close the owned gRPC channel, if this client created one."""
         if self._owns_channel:
             self._channel.close()
 
@@ -90,6 +127,15 @@ class VectorStoreGrpcClient(IVectorStore):
         self.close()
 
     def _grpc_error(self, message: str, error: grpc.RpcError) -> RuntimeError:
+        """Translate vector-store gRPC failures into project-level exceptions.
+
+        Args:
+            message: Prefix used for generic runtime failures.
+            error: gRPC error raised by the generated stub.
+
+        Returns:
+            Exception instance describing the provider failure.
+        """
         code = error.code()
         if code is grpc.StatusCode.UNAVAILABLE:
             return ProviderUnavailableError("Vector store", self._target, error.details())

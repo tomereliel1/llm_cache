@@ -9,6 +9,18 @@ from llm_cache.llm.interface import ILLMProvider
 
 
 def create_llm_provider(config: LLMConfig) -> ILLMProvider:
+    """Create an LLM provider from validated configuration.
+
+    Args:
+        config: LLM provider configuration.
+
+    Returns:
+        Concrete LLM provider matching ``config.provider``.
+
+    Raises:
+        ConfigError: If the provider is unknown, a required model is missing, or the
+        selected provider is missing required credentials.
+    """
     provider = normalize_provider_name(config.provider)
 
     if provider == "llm-provider-spy":

@@ -12,7 +12,7 @@ from llm_cache.request_context import grpc_metadata_for_current_request
 
 
 class LLMGrpcClient(ILLMProvider):
-    """Client-side adapter that makes a remote LLM service look like ILLMProvider."""
+    """Client adapter that exposes a remote LLM service as ``ILLMProvider``."""
 
     def __init__(
         self,
@@ -20,6 +20,14 @@ class LLMGrpcClient(ILLMProvider):
         timeout_seconds: float = 300.0,
         channel: grpc.Channel | None = None,
     ) -> None:
+        """Create an LLM gRPC client.
+
+        Args:
+            target: gRPC target address for the LLM service.
+            timeout_seconds: Deadline used for each generation request.
+            channel: Optional existing channel, mainly for tests. When omitted, this
+                client creates and owns its channel.
+        """
         self._target = target
         self._timeout_seconds = timeout_seconds
         self._owns_channel = channel is None
@@ -27,6 +35,19 @@ class LLMGrpcClient(ILLMProvider):
         self._stub = llm_pb2_grpc.LLMServiceStub(self._channel)
 
     def generate_answer(self, prompt: str) -> str:
+        """Request an answer from the remote LLM service.
+
+        Args:
+            prompt: Prompt to send to the LLM provider.
+
+        Returns:
+            Generated answer text.
+
+        Raises:
+            ProviderUnavailableError: If the LLM service cannot be reached.
+            ProviderTimeoutError: If the request exceeds the configured deadline.
+            RuntimeError: If the service returns another gRPC error status.
+        """
         request = llm_pb2.GenerateRequest(prompt=prompt)
         metadata = grpc_metadata_for_current_request()
 
@@ -56,6 +77,7 @@ class LLMGrpcClient(ILLMProvider):
         return reply.response
 
     def close(self) -> None:
+        """Close the owned gRPC channel, if this client created one."""
         if self._owns_channel:
             self._channel.close()
 

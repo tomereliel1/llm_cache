@@ -12,6 +12,18 @@ from llm_cache.vector_store.grpc.service import create_vector_store_grpc_server
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the vector-store gRPC server.
+
+    Args:
+        argv: Optional command-line arguments without the executable name.
+
+    Returns:
+        Process exit code. Returns 2 for invalid configuration, 1 for failed setup
+        checks, and 0 for normal shutdown.
+
+    Raises:
+        RuntimeError: If the configured gRPC bind address cannot be opened.
+    """
     config = parse_vector_store_server_args(argv)
     configure_logging("vector-store-service")
     try:

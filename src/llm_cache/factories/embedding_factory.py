@@ -7,6 +7,17 @@ from llm_cache.embedding.interface import IEmbedder
 
 
 def create_embedder(config: EmbeddingConfig) -> IEmbedder:
+    """Create an embedding provider from validated configuration.
+
+    Args:
+        config: Embedding provider configuration.
+
+    Returns:
+        Concrete embedder matching ``config.provider``.
+
+    Raises:
+        ConfigError: If the provider is unknown or required provider settings are missing.
+    """
     provider = normalize_provider_name(config.provider)
 
     if provider == "embedder-stub":

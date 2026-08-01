@@ -18,6 +18,15 @@ def create_llm_server(
     llm_provider: ILLMProvider,
     max_workers: int,
 ) -> grpc.Server:
+    """Create a gRPC server exposing an LLM provider.
+
+    Args:
+        llm_provider: Object implementing the LLM provider contract.
+        max_workers: Maximum worker threads used by the gRPC server.
+
+    Returns:
+        Unstarted gRPC server with the LLM service registered.
+    """
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
     llm_pb2_grpc.add_LLMServiceServicer_to_server(
         LLMGrpcService(llm_provider),
@@ -27,6 +36,14 @@ def create_llm_server(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the LLM provider gRPC server.
+
+    Args:
+        argv: Optional command-line arguments without the executable name.
+
+    Returns:
+        Process exit code. Returns 1 for failed setup checks and 0 for normal shutdown.
+    """
     config = parse_llm_server_args(argv)
     configure_logging("llm-service")
     llm_provider = create_llm_provider(config.llm)

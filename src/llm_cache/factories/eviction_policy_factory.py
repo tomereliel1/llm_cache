@@ -12,6 +12,20 @@ def create_eviction_policy(
     *,
     vector_store_provider: str,
 ) -> IEvictionPolicy | None:
+    """Create an eviction policy supported by a vector-store provider.
+
+    Args:
+        policy: Requested eviction policy name, or ``"default"``.
+        vector_store_provider: Provider name whose supported policies should be used.
+
+    Returns:
+        Eviction policy instance, or None when the provider default means no explicit
+        eviction policy object is needed.
+
+    Raises:
+        ConfigError: If the vector-store provider, eviction policy, or provider/policy
+        combination is unsupported.
+    """
     normalized_provider = normalize_provider_name(vector_store_provider)
     if normalized_provider not in SUPPORTED_VECTOR_STORE_PROVIDERS:
         raise ConfigError(

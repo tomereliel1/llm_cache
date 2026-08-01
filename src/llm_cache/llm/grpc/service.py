@@ -16,9 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 class LLMGrpcService(llm_pb2_grpc.LLMServiceServicer):
-    """Server-side adapter from protobuf requests to the internal LLM interface."""
+    """gRPC service adapter for an ``ILLMProvider`` implementation."""
 
     def __init__(self, llm_provider: ILLMProvider) -> None:
+        """Create the service around an LLM provider implementation.
+
+        Args:
+            llm_provider: Provider used to generate answers.
+        """
         self._llm_provider = llm_provider
 
     def Generate(
@@ -26,6 +31,18 @@ class LLMGrpcService(llm_pb2_grpc.LLMServiceServicer):
         request: llm_pb2.GenerateRequest,
         context: grpc.ServicerContext,
     ) -> llm_pb2.GenerateReply:
+        """Handle an LLM generation RPC request.
+
+        Args:
+            request: Protobuf request containing the prompt.
+            context: gRPC server context used for metadata and status handling.
+
+        Returns:
+            Protobuf reply containing the generated response.
+
+        Raises:
+            grpc.RpcError: Via ``context.abort`` for invalid input or provider failures.
+        """
         request_id = request_id_from_grpc_context(context) or new_request_id()
         with request_context(request_id):
             logger.info("llm_request_received prompt_length=%s", len(request.prompt))
