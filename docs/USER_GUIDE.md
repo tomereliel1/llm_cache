@@ -37,7 +37,7 @@ libraries are `grpcio`, `protobuf`, `ollama`, `groq`, and `chromadb`.
 Clone the repository and install dependencies from the repository root:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/tomereliel1/llm_cache.git
 cd llm_cache
 uv sync
 ```
