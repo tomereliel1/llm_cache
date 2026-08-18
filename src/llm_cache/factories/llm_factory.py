@@ -43,7 +43,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
         if not config.model:
             raise ConfigError(
                 "Missing model for Groq LLM provider. "
-                "Example: LLMConfig(provider='groq', model='llama-3.1-8b-instant')"
+                "Example: LLMConfig(provider='groq', model='openai/gpt-oss-20b')"
             )
 
         api_key_env = config.groq_api_key_env or "GROQ_API_KEY"

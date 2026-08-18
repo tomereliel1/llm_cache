@@ -9,7 +9,7 @@ from llm_cache.llm.interface import ILLMProvider
 class GroqLLMProvider(ILLMProvider):
     def __init__(
         self,
-        model_name="llama-3.1-8b-instant",
+        model_name="openai/gpt-oss-20b",
         api_key: str | None = None,
         api_key_env: str = "GROQ_API_KEY",
     ):
