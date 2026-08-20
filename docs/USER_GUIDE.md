@@ -331,7 +331,7 @@ Then configure the LLM service:
 {
   "llm_service": {
     "provider": "groq",
-    "model": "openai/gpt-oss-20b",
+    "model": "llama-3.1-8b-instant",
     "groq_api_key_env": "GROQ_API_KEY"
   }
 }

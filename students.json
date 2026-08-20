@@ -1,0 +1,9 @@
+﻿{
+  "project_name": "LLM Semantic Cache",
+  "course": "0230371",
+  "semester": "spring 2026",
+  "students": [
+    { "name": "Tomer Eliel", "id": 322715707 },
+    { "name": "Adi Volfman", "id": 211402789 }
+  ]
+}
