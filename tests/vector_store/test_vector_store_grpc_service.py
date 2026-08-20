@@ -35,6 +35,7 @@ def test_store_and_search_similar_over_grpc(vector_store_stub: VectorStoreServic
     search_reply = vector_store_stub.SearchSimilar(SearchSimilarRequest(vector=[0.9, 0.1]))
 
     assert store_reply.success is True
+    assert store_reply.entry_id == "entry-1"
     assert search_reply.found is True
     assert search_reply.prompt == "What is semantic caching?"
     assert search_reply.response == "cached response"

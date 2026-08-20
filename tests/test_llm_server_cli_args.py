@@ -43,7 +43,7 @@ def test_parse_llm_server_args_accepts_explicit_values() -> None:
             "--provider",
             "groq",
             "--model",
-            "llama-3.1-8b-instant",
+            "openai/gpt-oss-20b",
             "--groq-api-key-env",
             "CUSTOM_GROQ_KEY",
             "--workers",
@@ -57,7 +57,7 @@ def test_parse_llm_server_args_accepts_explicit_values() -> None:
     assert config.max_workers == 4
     assert config.check_setup is True
     assert config.llm.provider == "groq"
-    assert config.llm.model == "llama-3.1-8b-instant"
+    assert config.llm.model == "openai/gpt-oss-20b"
     assert config.llm.groq_api_key_env == "CUSTOM_GROQ_KEY"
 
 
@@ -80,7 +80,7 @@ def test_invalid_llm_model_for_provider_exits() -> None:
                 "--provider",
                 "ollama",
                 "--model",
-                "llama-3.1-8b-instant",
+                "openai/gpt-oss-20b",
             ]
         )
 

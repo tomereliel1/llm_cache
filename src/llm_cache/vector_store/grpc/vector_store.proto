@@ -26,4 +26,5 @@ message StoreRequest {
 
 message StoreReply {
   bool success = 1;
+  string entry_id = 2;
 }

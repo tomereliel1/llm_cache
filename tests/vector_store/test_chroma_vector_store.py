@@ -1,3 +1,6 @@
+import math
+from concurrent.futures import ThreadPoolExecutor
+
 import chromadb
 import pytest
 
@@ -268,3 +271,31 @@ def test_rejects_zero_vectors(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="zero vectors"):
         vector_store.store(prompt="prompt", response="response", vector=[0.0, 0.0])
+
+
+@pytest.mark.parametrize("invalid_value", [math.nan, math.inf, -math.inf])
+def test_rejects_non_finite_vectors(tmp_path, invalid_value: float) -> None:
+    vector_store = ChromaVectorStore(persist_path=str(tmp_path))
+
+    with pytest.raises(ValueError, match="finite"):
+        vector_store.store(prompt="prompt", response="response", vector=[1.0, invalid_value])
+
+
+def test_concurrent_writes_with_eviction_do_not_exceed_configured_capacity(tmp_path) -> None:
+    vector_store = ChromaVectorStore(
+        persist_path=str(tmp_path),
+        max_capacity=3,
+        eviction_policy=LRUEvictionPolicy(),
+    )
+
+    def store(index: int) -> None:
+        vector_store.store(
+            prompt=f"prompt {index}",
+            response=f"response {index}",
+            vector=[float(index + 1), 1.0],
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(store, range(25)))
+
+    assert vector_store._collection.count() == 3

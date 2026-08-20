@@ -17,9 +17,14 @@ logger = logging.getLogger(__name__)
 
 
 class OrchestratorGrpcService(orchestrator_pb2_grpc.OrchestratorServiceServicer):
-    """Adapt the public gRPC API to the cache orchestration algorithm."""
+    """Public gRPC service that exposes cache queries to clients."""
 
     def __init__(self, orchestrator: CacheOrchestrator) -> None:
+        """Create the service around an orchestrator instance.
+
+        Args:
+            orchestrator: Cache orchestrator used to process submitted prompts.
+        """
         self._orchestrator = orchestrator
 
     def SubmitPrompt(
@@ -27,6 +32,19 @@ class OrchestratorGrpcService(orchestrator_pb2_grpc.OrchestratorServiceServicer)
         request: orchestrator_pb2.SubmitPromptRequest,
         context: grpc.ServicerContext,
     ) -> orchestrator_pb2.SubmitPromptReply:
+        """Handle a public prompt submission request.
+
+        Args:
+            request: Protobuf request containing the prompt.
+            context: gRPC server context used for metadata and status handling.
+
+        Returns:
+            Protobuf reply containing the response text and cache-hit flag.
+
+        Raises:
+            grpc.RpcError: Via ``context.abort`` for invalid prompts, provider
+            unavailability, provider timeouts, and unexpected orchestration failures.
+        """
         request_id = request_id_from_grpc_context(context) or new_request_id()
         with request_context(request_id):
             if not request.prompt or not request.prompt.strip():

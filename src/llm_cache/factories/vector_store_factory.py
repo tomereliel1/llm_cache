@@ -12,6 +12,18 @@ from .eviction_policy_factory import create_eviction_policy
 
 
 def create_vector_store(config: VectorStoreConfig) -> IVectorStore:
+    """Create a vector-store implementation from validated configuration.
+
+    Args:
+        config: Vector-store configuration.
+
+    Returns:
+        Concrete vector store matching ``config.provider``.
+
+    Raises:
+        ConfigError: If the provider or eviction policy is unsupported.
+        ValueError: If provider-specific store construction rejects the configuration.
+    """
     provider = normalize_provider_name(config.provider)
     if provider not in SUPPORTED_VECTOR_STORE_PROVIDERS:
         raise ConfigError(

@@ -35,7 +35,9 @@ class StoreRequest(_message.Message):
     def __init__(self, prompt: _Optional[str] = ..., response: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class StoreReply(_message.Message):
-    __slots__ = ("success",)
+    __slots__ = ("success", "entry_id")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    ENTRY_ID_FIELD_NUMBER: _ClassVar[int]
     success: bool
-    def __init__(self, success: _Optional[bool] = ...) -> None: ...
+    entry_id: str
+    def __init__(self, success: _Optional[bool] = ..., entry_id: _Optional[str] = ...) -> None: ...

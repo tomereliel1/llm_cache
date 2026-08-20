@@ -9,6 +9,18 @@ from llm_cache.llm.interface import ILLMProvider
 
 
 def create_llm_provider(config: LLMConfig) -> ILLMProvider:
+    """Create an LLM provider from validated configuration.
+
+    Args:
+        config: LLM provider configuration.
+
+    Returns:
+        Concrete LLM provider matching ``config.provider``.
+
+    Raises:
+        ConfigError: If the provider is unknown, a required model is missing, or the
+        selected provider is missing required credentials.
+    """
     provider = normalize_provider_name(config.provider)
 
     if provider == "llm-provider-spy":
@@ -31,7 +43,7 @@ def create_llm_provider(config: LLMConfig) -> ILLMProvider:
         if not config.model:
             raise ConfigError(
                 "Missing model for Groq LLM provider. "
-                "Example: LLMConfig(provider='groq', model='llama-3.1-8b-instant')"
+                "Example: LLMConfig(provider='groq', model='openai/gpt-oss-20b')"
             )
 
         api_key_env = config.groq_api_key_env or "GROQ_API_KEY"

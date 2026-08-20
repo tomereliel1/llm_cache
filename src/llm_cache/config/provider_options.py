@@ -80,8 +80,8 @@ SUPPORTED_LLM_PROVIDERS: dict[str, ModelProviderOption] = {
     ),
     "groq": ModelProviderOption(
         name="groq",
-        default_model="llama-3.1-8b-instant",
-        supported_models=("llama-3.1-8b-instant",),
+        default_model="openai/gpt-oss-20b",
+        supported_models=("openai/gpt-oss-20b",),
         description="Groq-hosted LLM provider.",
     ),
 }

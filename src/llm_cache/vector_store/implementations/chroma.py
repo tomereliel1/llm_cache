@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+from threading import RLock
 from time import monotonic
 from typing import Any, cast
 from uuid import uuid4
@@ -17,7 +19,11 @@ from llm_cache.vector_store.models import CacheEntryMetadata
 
 
 class ChromaVectorStore(IVectorStore):
-    """Vector store backed by Chroma's default distance behavior."""
+    """Chroma-backed vector store for semantic cache entries.
+
+    The store can run with an ephemeral Chroma client for temporary caches or a persistent
+    Chroma client for caches that survive process restarts.
+    """
 
     def __init__(
         self,
@@ -29,6 +35,22 @@ class ChromaVectorStore(IVectorStore):
         persistent: bool = False,
         distance_function: str = DEFAULT_CHROMA_DISTANCE_FUNCTION,
     ) -> None:
+        """Create a Chroma vector store.
+
+        Args:
+            similarity_threshold: Maximum Chroma distance accepted as a cache hit.
+            persist_path: Filesystem path used when persistent storage is enabled.
+            collection_name: Chroma collection name for persistent stores.
+            max_capacity: Maximum number of entries retained when eviction is configured.
+            eviction_policy: Optional policy used when inserting into a full cache.
+            persistent: Whether to use Chroma persistent storage.
+            distance_function: Chroma distance function for the collection.
+
+        Raises:
+            ValueError: If configuration values are invalid, or if an existing Chroma
+            collection uses a different distance function than requested.
+            RuntimeError: If Chroma cannot create or access the configured collection.
+        """
         if not 0 <= similarity_threshold <= 1:
             raise ValueError("similarity_threshold must be between 0 and 1")
 
@@ -50,6 +72,7 @@ class ChromaVectorStore(IVectorStore):
         self.eviction_policy = eviction_policy
         self.persistent = persistent
         self.distance_function = distance_function
+        self._lock = RLock()
 
         if persistent:
             self._client = chromadb.PersistentClient(path=persist_path)
@@ -65,42 +88,69 @@ class ChromaVectorStore(IVectorStore):
         self._validate_collection_distance_function()
 
     def search_similar(self, vector: list[float]) -> VectorStoreResult:
+        """Find a cached response using Chroma nearest-neighbor search.
+
+        Args:
+            vector: Prompt embedding vector to search for.
+
+        Returns:
+            VectorStoreResult with the nearest accepted entry, otherwise a miss result.
+
+        Raises:
+            ValueError: If the vector is empty, non-finite, or a zero vector.
+            RuntimeError: If the Chroma query fails.
+        """
         self._validate_vector(vector)
 
-        if self._collection.count() == 0:
-            return VectorStoreResult(found=False, prompt="", response="")
+        with self._lock:
+            if self._collection.count() == 0:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        results = self._collection.query(
-            query_embeddings=[vector],
-            n_results=1,
-            include=["documents", "metadatas", "distances"],
-        )
+            results = self._collection.query(
+                query_embeddings=[vector],
+                n_results=1,
+                include=["documents", "metadatas", "distances"],
+            )
 
-        ids = results.get("ids")
-        distances = results.get("distances")
-        documents = results.get("documents")
-        metadatas = results.get("metadatas")
-        if not ids or not ids[0] or not distances or not documents or not metadatas:
-            return VectorStoreResult(found=False, prompt="", response="")
+            ids = results.get("ids")
+            distances = results.get("distances")
+            documents = results.get("documents")
+            metadatas = results.get("metadatas")
+            if not ids or not ids[0] or not distances or not documents or not metadatas:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        entry_id = ids[0][0]
-        distance = distances[0][0]
-        if distance > self.similarity_threshold:
-            return VectorStoreResult(found=False, prompt="", response="")
+            entry_id = ids[0][0]
+            distance = distances[0][0]
+            if distance > self.similarity_threshold:
+                return VectorStoreResult(found=False, prompt="", response="")
 
-        document = documents[0][0]
-        metadata = cast(dict[str, Any], metadatas[0][0] or {})
-        response = metadata.get("response", "")
-        self._touch(entry_id, metadata)
+            document = documents[0][0]
+            metadata = cast(dict[str, Any], metadatas[0][0] or {})
+            response = metadata.get("response", "")
+            self._touch(entry_id, metadata)
 
-        return VectorStoreResult(
-            found=True,
-            prompt=document,
-            response=str(response),
-            score=float(distance),
-        )
+            return VectorStoreResult(
+                found=True,
+                prompt=document,
+                response=str(response),
+                score=float(distance),
+            )
 
     def store(self, prompt: str, response: str, vector: list[float]) -> str:
+        """Store a cache entry in Chroma.
+
+        Args:
+            prompt: Prompt text associated with the response.
+            response: Response text to cache.
+            vector: Embedding vector for the prompt.
+
+        Returns:
+            Generated Chroma entry identifier.
+
+        Raises:
+            ValueError: If the prompt, response, or vector is invalid.
+            RuntimeError: If Chroma cannot store the entry.
+        """
         clean_prompt = prompt.strip()
         if not clean_prompt:
             raise ValueError("prompt must be a non-empty string")
@@ -109,27 +159,34 @@ class ChromaVectorStore(IVectorStore):
             raise ValueError("response must be a non-empty string")
 
         self._validate_vector(vector)
-        self._evict_if_needed()
+        with self._lock:
+            self._evict_if_needed()
 
-        entry_id = str(uuid4())
-        now = monotonic()
-        self._collection.add(
-            ids=[entry_id],
-            embeddings=[vector],
-            documents=[clean_prompt],
-            metadatas=[
-                {
-                    "response": response,
-                    "created_at": now,
-                    "last_accessed_at": now,
-                }
-            ],
-        )
-        return entry_id
+            entry_id = str(uuid4())
+            now = monotonic()
+            self._collection.add(
+                ids=[entry_id],
+                embeddings=[vector],
+                documents=[clean_prompt],
+                metadatas=[
+                    {
+                        "response": response,
+                        "created_at": now,
+                        "last_accessed_at": now,
+                    }
+                ],
+            )
+            return entry_id
 
     def health_check(self) -> HealthCheckResult:
+        """Check whether the configured Chroma collection is reachable.
+
+        Returns:
+            HealthCheckResult describing collection readiness and entry count.
+        """
         try:
-            entry_count = self._collection.count()
+            with self._lock:
+                entry_count = self._collection.count()
         except Exception as error:
             return HealthCheckResult.fail(
                 name="vector-store:chroma",
@@ -146,6 +203,11 @@ class ChromaVectorStore(IVectorStore):
         )
 
     def _validate_collection_distance_function(self) -> None:
+        """Ensure the existing Chroma collection matches the configured distance function.
+
+        Raises:
+            ValueError: If the collection already exists with a different distance function.
+        """
         metadata = cast(dict[str, Any], self._collection.metadata or {})
         existing_distance_function = str(
             metadata.get("hnsw:space", DEFAULT_CHROMA_DISTANCE_FUNCTION)
@@ -195,8 +257,19 @@ class ChromaVectorStore(IVectorStore):
 
     @staticmethod
     def _validate_vector(vector: list[float]) -> None:
+        """Validate vector shape and numeric values accepted by this store.
+
+        Args:
+            vector: Embedding vector to validate.
+
+        Raises:
+            ValueError: If the vector is empty, contains non-finite values, or is zero.
+        """
         if not vector:
             raise ValueError("vector must not be empty")
+
+        if not all(math.isfinite(value) for value in vector):
+            raise ValueError("vector values must be finite numbers")
 
         if all(value == 0 for value in vector):
             raise ValueError("vectors must not be zero vectors")

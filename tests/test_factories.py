@@ -121,7 +121,7 @@ def test_create_llm_provider_rejects_missing_groq_api_key(monkeypatch: pytest.Mo
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
 
     with pytest.raises(ConfigError, match="Missing Groq API key.*GROQ_API_KEY"):
-        create_llm_provider(LLMConfig(provider="groq", model="llama-3.1-8b-instant"))
+        create_llm_provider(LLMConfig(provider="groq", model="openai/gpt-oss-20b"))
 
 
 def test_create_llm_provider_returns_groq_llm_provider_for_groq_with_api_key(
@@ -132,7 +132,7 @@ def test_create_llm_provider_returns_groq_llm_provider_for_groq_with_api_key(
     llm_provider = create_llm_provider(
         LLMConfig(
             provider="groq",
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-20b",
             groq_api_key_env="TEST_GROQ_API_KEY",
         )
     )

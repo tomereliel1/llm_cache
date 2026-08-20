@@ -3,9 +3,7 @@
 import grpc
 import warnings
 
-from llm_cache.vector_store.grpc.generated import (
-    vector_store_pb2 as llm__cache_dot_vector__store_dot_vector__store__pb2,
-)
+from llm_cache.vector_store.grpc.generated import vector_store_pb2 as vector__store__pb2
 
 GRPC_GENERATED_VERSION = '1.81.1'
 GRPC_VERSION = grpc.__version__
@@ -20,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + ' but the generated code in llm_cache/vector_store/vector_store_pb2_grpc.py depends on'
+        + ' but the generated code in vector_store_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -38,13 +36,13 @@ class VectorStoreServiceStub:
         """
         self.SearchSimilar = channel.unary_unary(
                 '/vectorstore.VectorStoreService/SearchSimilar',
-                request_serializer=llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarRequest.SerializeToString,
-                response_deserializer=llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarReply.FromString,
+                request_serializer=vector__store__pb2.SearchSimilarRequest.SerializeToString,
+                response_deserializer=vector__store__pb2.SearchSimilarReply.FromString,
                 _registered_method=True)
         self.Store = channel.unary_unary(
                 '/vectorstore.VectorStoreService/Store',
-                request_serializer=llm__cache_dot_vector__store_dot_vector__store__pb2.StoreRequest.SerializeToString,
-                response_deserializer=llm__cache_dot_vector__store_dot_vector__store__pb2.StoreReply.FromString,
+                request_serializer=vector__store__pb2.StoreRequest.SerializeToString,
+                response_deserializer=vector__store__pb2.StoreReply.FromString,
                 _registered_method=True)
 
 
@@ -68,13 +66,13 @@ def add_VectorStoreServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'SearchSimilar': grpc.unary_unary_rpc_method_handler(
                     servicer.SearchSimilar,
-                    request_deserializer=llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarRequest.FromString,
-                    response_serializer=llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarReply.SerializeToString,
+                    request_deserializer=vector__store__pb2.SearchSimilarRequest.FromString,
+                    response_serializer=vector__store__pb2.SearchSimilarReply.SerializeToString,
             ),
             'Store': grpc.unary_unary_rpc_method_handler(
                     servicer.Store,
-                    request_deserializer=llm__cache_dot_vector__store_dot_vector__store__pb2.StoreRequest.FromString,
-                    response_serializer=llm__cache_dot_vector__store_dot_vector__store__pb2.StoreReply.SerializeToString,
+                    request_deserializer=vector__store__pb2.StoreRequest.FromString,
+                    response_serializer=vector__store__pb2.StoreReply.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -102,8 +100,8 @@ class VectorStoreService:
             request,
             target,
             '/vectorstore.VectorStoreService/SearchSimilar',
-            llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarRequest.SerializeToString,
-            llm__cache_dot_vector__store_dot_vector__store__pb2.SearchSimilarReply.FromString,
+            vector__store__pb2.SearchSimilarRequest.SerializeToString,
+            vector__store__pb2.SearchSimilarReply.FromString,
             options,
             channel_credentials,
             insecure,
@@ -129,8 +127,8 @@ class VectorStoreService:
             request,
             target,
             '/vectorstore.VectorStoreService/Store',
-            llm__cache_dot_vector__store_dot_vector__store__pb2.StoreRequest.SerializeToString,
-            llm__cache_dot_vector__store_dot_vector__store__pb2.StoreReply.FromString,
+            vector__store__pb2.StoreRequest.SerializeToString,
+            vector__store__pb2.StoreReply.FromString,
             options,
             channel_credentials,
             insecure,

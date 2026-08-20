@@ -12,7 +12,7 @@ from llm_cache.request_context import grpc_metadata_for_current_request
 
 
 class EmbeddingGrpcClient(IEmbedder):
-    """Client-side adapter that makes a remote embedding service look like IEmbedder."""
+    """Client adapter that exposes a remote embedding service as ``IEmbedder``."""
 
     def __init__(
         self,
@@ -20,6 +20,14 @@ class EmbeddingGrpcClient(IEmbedder):
         timeout_seconds: float = 30.0,
         channel: grpc.Channel | None = None,
     ) -> None:
+        """Create an embedding gRPC client.
+
+        Args:
+            target: gRPC target address for the embedding service.
+            timeout_seconds: Deadline used for each embedding request.
+            channel: Optional existing channel, mainly for tests. When omitted, this
+                client creates and owns its channel.
+        """
         self._target = target
         self._timeout_seconds = timeout_seconds
         self._owns_channel = channel is None
@@ -27,6 +35,19 @@ class EmbeddingGrpcClient(IEmbedder):
         self._stub = embedding_pb2_grpc.EmbeddingServiceStub(self._channel)
 
     def embed(self, prompt: str) -> list[float]:
+        """Request an embedding vector from the remote embedding service.
+
+        Args:
+            prompt: Text prompt to embed.
+
+        Returns:
+            Embedding vector returned by the service.
+
+        Raises:
+            ProviderUnavailableError: If the embedding service cannot be reached.
+            ProviderTimeoutError: If the request exceeds the configured deadline.
+            RuntimeError: If the service returns another gRPC error status.
+        """
         request = embedding_pb2.EmbedRequest(prompt=prompt)
         metadata = grpc_metadata_for_current_request()
 
@@ -60,6 +81,7 @@ class EmbeddingGrpcClient(IEmbedder):
         return list(reply.vector)
 
     def close(self) -> None:
+        """Close the owned gRPC channel, if this client created one."""
         if self._owns_channel:
             self._channel.close()
 

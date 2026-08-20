@@ -18,6 +18,15 @@ def create_embedding_server(
     embedder: Any,
     max_workers: int,
 ) -> grpc.Server:
+    """Create a gRPC server exposing an embedding provider.
+
+    Args:
+        embedder: Object implementing the embedding provider contract.
+        max_workers: Maximum worker threads used by the gRPC server.
+
+    Returns:
+        Unstarted gRPC server with the embedding service registered.
+    """
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
     embedding_pb2_grpc.add_EmbeddingServiceServicer_to_server(
         EmbeddingGrpcService(embedder),
@@ -27,6 +36,14 @@ def create_embedding_server(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the embedding provider gRPC server.
+
+    Args:
+        argv: Optional command-line arguments without the executable name.
+
+    Returns:
+        Process exit code. Returns 1 for failed setup checks and 0 for normal shutdown.
+    """
     config = parse_embedding_server_args(argv)
     configure_logging("embedding-service")
 
